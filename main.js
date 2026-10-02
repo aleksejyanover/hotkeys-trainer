@@ -1,5 +1,6 @@
-const { app, BrowserWindow, Menu, ipcMain } = require('electron');
+const { app, BrowserWindow, Menu, ipcMain, dialog } = require('electron');
 const path = require('path');
+const fs = require('fs');
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -55,6 +56,36 @@ app.whenReady().then(() => {
       Menu.setApplicationMenu(Menu.buildFromTemplate([{ label: ' ', submenu: [] }]));
     } else {
       buildMenu();
+    }
+  });
+
+  // Экспорт данных приложения в JSON-файл
+  ipcMain.handle('export-data', async (event, json) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    const { filePath } = await dialog.showSaveDialog(win, {
+      title: 'Hotkeys Trainer',
+      defaultPath: 'hotkeys-trainer-backup.json',
+      filters: [{ name: 'JSON', extensions: ['json'] }]
+    });
+    if (!filePath) return null;
+    await fs.promises.writeFile(filePath, json, 'utf8');
+    return filePath;
+  });
+
+  // Импорт данных из JSON-файла
+  ipcMain.handle('import-data', async (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    const { canceled, filePaths } = await dialog.showOpenDialog(win, {
+      title: 'Hotkeys Trainer',
+      filters: [{ name: 'JSON', extensions: ['json'] }],
+      properties: ['openFile']
+    });
+    if (canceled || !filePaths[0]) return null;
+    try {
+      const raw = await fs.promises.readFile(filePaths[0], 'utf8');
+      return JSON.parse(raw);
+    } catch {
+      return { error: true };
     }
   });
 

@@ -1,186 +1,50 @@
 import { CATEGORIES, SHORTCUTS, comboFor, isOsLevel } from './data.js';
 import { I18N } from './i18n.js';
+import { store } from './store.js';
+import { renderComboChips, renderKeyboard, comboToKeyIds } from './keyboard.js';
+import { trainer } from './trainer.js';
 
-// ────────────────────────────────────────────────────────────
-// Состояние и хранилище
-// ────────────────────────────────────────────────────────────
-const detectPlatform = () =>
-  (window.hotkeysTrainer && window.hotkeysTrainer.platform === 'darwin') ? 'mac' : 'win';
-
-const state = {
-  lang: localStorage.getItem('ht_lang') || 'ru',
-  platform: detectPlatform(),
-  tab: 'learn',
-  activeCat: 'all',
-  trainer: { running: false, pool: [], idx: 0, score: 0, attempts: 0, streak: 0, best: 0, locked: false }
-};
-
-let notes = load('ht_notes', {});
-let custom = load('ht_custom', []);
-
-function load(key, fallback) {
-  try { return JSON.parse(localStorage.getItem(key)) ?? fallback; }
-  catch { return fallback; }
-}
-function save(key, value) {
-  try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
-}
-
-const t = (key) => I18N[state.lang][key] ?? key;
 const $ = (id) => document.getElementById(id);
+const t = (key) => I18N[store.lang][key] ?? key;
 
-// ────────────────────────────────────────────────────────────
-// Сочетания: разбор и клавиатурные события
-// ────────────────────────────────────────────────────────────
-const MOD_KEYS = {
-  cmd: 'meta', meta: 'meta', command: 'meta',
-  ctrl: 'ctrl', control: 'ctrl',
-  opt: 'alt', alt: 'alt', option: 'alt',
-  shift: 'shift'
-};
+let activeCat = 'all';
+let mapSelectedId = null;
+let mapKeyFilter = null; // id клавиши-фильтра
 
-const NAMED_KEYS = {
-  space: 'Space', enter: 'Enter', return: 'Enter', tab: 'Tab',
-  backspace: 'Backspace', delete: 'Delete', del: 'Delete', escape: 'Escape', esc: 'Escape',
-  home: 'Home', end: 'End', pageup: 'PageUp', pagedown: 'PageDown',
-  up: 'Up', down: 'Down', left: 'Left', right: 'Right',
-  comma: ',', period: '.', slash: '/', backslash: '\\',
-  minus: '-', equal: '=', semicolon: ';', quote: "'",
-  bracketleft: '[', bracketright: ']', backquote: '`'
-};
-
-const CODE_MAP = {
-  ArrowLeft: 'Left', ArrowRight: 'Right', ArrowUp: 'Up', ArrowDown: 'Down',
-  Space: 'Space', Enter: 'Enter', Tab: 'Tab', Backspace: 'Backspace',
-  Delete: 'Delete', Escape: 'Escape', Home: 'Home', End: 'End',
-  PageUp: 'PageUp', PageDown: 'PageDown',
-  BracketLeft: '[', BracketRight: ']', Backquote: '`', Comma: ',',
-  Period: '.', Slash: '/', Backslash: '\\', Minus: '-', Equal: '=',
-  Semicolon: ';', Quote: "'"
-};
-
-// "Cmd+Shift+Z" → { meta:true, ctrl:false, alt:false, shift:true, key:'Z' }
-function parseCombo(str) {
-  const exp = { meta: false, ctrl: false, alt: false, shift: false, key: null };
-  if (!str) return exp;
-  for (const raw of str.split('+')) {
-    const part = raw.trim();
-    if (!part) continue;
-    const low = part.toLowerCase();
-    if (MOD_KEYS[low]) {
-      exp[MOD_KEYS[low]] = true;
-    } else if (NAMED_KEYS[low]) {
-      exp.key = NAMED_KEYS[low];
-    } else if (part.length === 1) {
-      exp.key = part.toUpperCase();
-    } else if (/^f\d{1,2}$/i.test(part)) {
-      exp.key = part.toUpperCase();
-    } else {
-      exp.key = part; // например 'Left', 'PageUp'
-      if (part.length > 1) {
-        const canon = NAMED_KEYS[low];
-        if (canon) exp.key = canon;
-      }
-    }
-  }
-  return exp;
-}
-
-// Код клавиши события → каноничное имя
-function keyFromEvent(e) {
-  const code = e.code || '';
-  if (/^Key[A-Z]$/.test(code)) return code.slice(3);
-  if (/^Digit\d$/.test(code)) return code.slice(5);
-  if (/^Numpad\d$/.test(code)) return code.slice(6);
-  if (/^F\d{1,2}$/.test(code)) return code;
-  if (CODE_MAP[code]) return CODE_MAP[code];
-  const k = e.key;
-  if (k === ' ' || k === 'Spacebar') return 'Space';
-  if (k === 'Meta') return 'Meta';
-  if (k && k.length === 1) return k.toUpperCase();
-  return k || code;
-}
-
-function eventMatches(e, exp) {
-  return (
-    e.metaKey === exp.meta &&
-    e.ctrlKey === exp.ctrl &&
-    e.altKey === exp.alt &&
-    e.shiftKey === exp.shift &&
-    keyFromEvent(e) === exp.key
-  );
-}
-
-// Нажатая комбинация → список токенов для отображения
-function pressedTokens(e) {
-  const tokens = [];
-  if (e.ctrlKey) tokens.push('Ctrl');
-  if (e.altKey) tokens.push(state.platform === 'mac' ? 'Opt' : 'Alt');
-  if (e.shiftKey) tokens.push('Shift');
-  if (e.metaKey) tokens.push(state.platform === 'mac' ? 'Cmd' : 'Win');
-  const key = keyFromEvent(e);
-  if (key && !['Meta', 'Shift', 'Control', 'Alt'].includes(key)) tokens.push(key);
-  return tokens;
-}
-
-function renderTokens(container, tokens) {
-  container.innerHTML = '';
-  tokens.forEach((tok, i) => {
-    if (i > 0) {
-      const plus = document.createElement('span');
-      plus.className = 'kbd-plus';
-      plus.textContent = '+';
-      container.appendChild(plus);
-    }
-    const kbd = document.createElement('kbd');
-    kbd.textContent = tok;
-    container.appendChild(kbd);
-  });
-}
-
-function renderCombo(container, comboStr) {
-  renderTokens(container, comboStr.split('+').map((s) => s.trim()).filter(Boolean));
-}
-
-// ────────────────────────────────────────────────────────────
-// Данные: сочетания + пользовательские
-// ────────────────────────────────────────────────────────────
+// ── Данные: каталог + пользовательские ────────────────────
 function allShortcuts() {
-  const customItems = custom.map((c) => ({
+  const customItems = store.custom.map((c) => ({
     id: c.id,
     cat: 'my',
     custom: true,
     title: { ru: c.title, en: c.title },
-    desc: { ru: c.desc || '', en: c.desc || '' },
+    desc: { ru: '', en: '' },
     combo: { mac: c.combo, win: c.combo }
   }));
   return [...SHORTCUTS, ...customItems];
 }
 
-const visibleOn = (s) => Boolean(comboFor(s, state.platform));
+const visibleOn = (s) => Boolean(comboFor(s, store.platform));
+const availableIds = () => allShortcuts().filter(visibleOn).map((s) => s.id);
+const itemsInCat = (catId) => allShortcuts().filter((s) => visibleOn(s) && s.cat === catId);
 
-// ────────────────────────────────────────────────────────────
-// Статичные подписи (i18n)
-// ────────────────────────────────────────────────────────────
+// ── Статичные подписи ─────────────────────────────────────
 function applyStatic() {
-  document.documentElement.lang = state.lang === 'ru' ? 'ru' : 'en';
+  document.documentElement.lang = store.lang;
+  document.documentElement.dataset.theme = store.theme;
+
   $('app-title').textContent = t('appTitle');
   $('app-tagline').textContent = t('appTagline');
   $('tab-learn').textContent = t('tabLearn');
   $('tab-trainer').textContent = t('tabTrainer');
+  $('tab-map').textContent = t('tabMap');
+  $('tab-progress').textContent = t('tabProgress');
   $('tab-search').textContent = t('tabSearch');
   $('tab-notes').textContent = t('tabNotes');
   $('lang-label').textContent = t('language');
   $('platform-label').textContent = t('platform');
-  $('trainer-cat-label').textContent = t('trainerPickCategory');
-  $('trainer-start').textContent = t('trainerStart');
-  $('trainer-hint').textContent = t('trainerOnlyCapturable');
-  $('task-prompt').textContent = t('trainerPrompt');
-  $('trainer-answer').textContent = t('trainerShowAnswer');
-  $('trainer-skip').textContent = t('trainerSkip');
-  $('trainer-stop').textContent = t('trainerStop');
-  $('result-title').textContent = t('trainerFinished');
-  $('trainer-again').textContent = t('trainerStart');
+  $('theme-label').textContent = t('theme');
+
   $('search-input').placeholder = t('searchPlaceholder');
   $('notes-title').textContent = '⭐ ' + t('tabNotes');
   $('notes-empty').textContent = t('notesEmpty');
@@ -189,20 +53,35 @@ function applyStatic() {
   $('custom-name').placeholder = t('customTitlePlaceholder');
   $('custom-combo').placeholder = t('customComboPlaceholder');
   $('custom-add').textContent = t('customAdd');
-  $('stat-score-label').textContent = t('trainerScore');
-  $('stat-attempts-label').textContent = t('trainerAttempts');
-  $('stat-streak-label').textContent = t('trainerStreak');
-  $('stat-score').previousElementSibling; // no-op
+
+  $('map-hint').textContent = t('mapHint');
+  $('map-clear').textContent = t('mapClear');
+
+  $('prog-learned-label').textContent = t('progLearned');
+  $('prog-accuracy-label').textContent = t('progAccuracy');
+  $('prog-attempts-label').textContent = t('progAttempts');
+  $('prog-streak-label').textContent = t('progStreak');
+  $('daily-title').textContent = t('dailyTitle');
+  $('daily-new-label').textContent = t('dailyNew');
+  $('daily-review-label').textContent = t('dailyReview');
+  $('prog7-title').textContent = t('prog7');
+  $('prog-cat-title').textContent = t('progCats');
+  $('weak-title').textContent = t('weakTitle');
+  $('weak-hint').textContent = t('weakHint');
+  $('data-title').textContent = t('dataTitle');
+  $('data-hint').textContent = t('dataHint');
+  $('export-btn').textContent = t('exportBtn');
+  $('import-btn').textContent = t('importBtn');
 
   document.querySelectorAll('#lang-switch button').forEach((b) =>
-    b.classList.toggle('active', b.dataset.lang === state.lang));
+    b.classList.toggle('active', b.dataset.lang === store.lang));
   document.querySelectorAll('#platform-switch button').forEach((b) =>
-    b.classList.toggle('active', b.dataset.platform === state.platform));
+    b.classList.toggle('active', b.dataset.platform === store.platformChoice));
+  document.querySelectorAll('#theme-switch button').forEach((b) =>
+    b.classList.toggle('active', b.dataset.theme === store.theme));
 }
 
-// ────────────────────────────────────────────────────────────
-// Учебник
-// ────────────────────────────────────────────────────────────
+// ── Учебник ───────────────────────────────────────────────
 function renderChips() {
   const box = $('category-chips');
   box.innerHTML = '';
@@ -211,70 +90,57 @@ function renderChips() {
 
   const mk = (id, label) => {
     const btn = document.createElement('button');
-    btn.className = 'chip' + (state.activeCat === id ? ' active' : '');
+    btn.className = 'chip' + (activeCat === id ? ' active' : '');
     btn.textContent = label;
-    btn.onclick = () => { state.activeCat = id; renderChips(); renderLearn(); };
+    btn.onclick = () => { activeCat = id; renderChips(); renderLearn(); };
     box.appendChild(btn);
   };
 
-  const allLabel = state.lang === 'ru'
-    ? `Все (${items.length})`
-    : `All (${items.length})`;
-  mk('all', allLabel);
+  mk('all', `${t('tabLearn')} (${items.length})`);
   cats.forEach((c) => {
     const n = items.filter((s) => s.cat === c.id).length;
-    const name = typeof c.title === 'string' ? c.title : c.title[state.lang];
-    mk(c.id, `${c.icon} ${name} (${n})`);
+    mk(c.id, `${c.icon} ${c.title[store.lang]} (${n})`);
   });
 }
 
-function shortcutCard(s, opts = {}) {
+function shortcutCard(s) {
   const item = document.createElement('div');
   item.className = 'shortcut-item';
 
-  const combo = comboFor(s, state.platform);
-  const osLevel = isOsLevel(s, state.platform);
-  const note = notes[s.id];
+  const combo = comboFor(s, store.platform);
+  const osLevel = isOsLevel(s, store.platform);
+  const note = store.notes[s.id];
+  const learned = store.isLearned(s.id);
 
   const head = document.createElement('div');
   head.className = 'shortcut-head';
 
   const title = document.createElement('div');
   title.className = 'shortcut-title';
-  title.append(document.createTextNode(s.title[state.lang]));
-  if (osLevel) {
-    const b = document.createElement('span');
-    b.className = 'badge';
-    b.textContent = t('osBadge');
-    title.appendChild(b);
-  }
-  if (note) {
-    const b = document.createElement('span');
-    b.className = 'badge note-badge';
-    b.textContent = '⭐';
-    title.appendChild(b);
-  }
+  title.append(document.createTextNode(s.title[store.lang]));
+  if (osLevel) title.appendChild(badge(t('osBadge'), ''));
+  if (note) title.appendChild(badge('⭐', 'note-badge'));
+  if (learned) title.appendChild(badge('✓', 'learned-badge'));
 
   const keys = document.createElement('div');
   keys.className = 'keys';
-  renderCombo(keys, combo);
+  renderComboChips(keys, combo);
 
   head.append(title, keys);
   item.appendChild(head);
 
   const desc = document.createElement('p');
   desc.className = 'shortcut-desc';
-  desc.textContent = s.desc[state.lang] || '';
+  desc.textContent = s.desc[store.lang] || '';
   item.appendChild(desc);
 
-  // Раскрываемая область: подсказка + заметка
   const detail = document.createElement('div');
   detail.className = 'shortcut-detail';
 
   if (s.opens) {
     const opens = document.createElement('p');
     opens.className = 'shortcut-desc';
-    opens.textContent = s.opens[state.lang];
+    opens.textContent = s.opens[store.lang];
     detail.appendChild(opens);
   }
   if (osLevel) {
@@ -284,39 +150,40 @@ function shortcutCard(s, opts = {}) {
     detail.appendChild(h);
   }
 
-  if (!opts.noNote) {
-    const label = document.createElement('div');
-    label.className = 'hint';
-    label.textContent = t('note');
-    const ta = document.createElement('textarea');
-    ta.className = 'note-area';
-    ta.placeholder = t('notePlaceholder');
-    ta.value = note || '';
-    ta.addEventListener('click', (e) => e.stopPropagation());
-    ta.addEventListener('input', () => {
-      notes[s.id] = ta.value;
-      if (!ta.value.trim()) delete notes[s.id];
-      save('ht_notes', notes);
-      saved.textContent = ta.value.trim() ? t('noteSaved') : '';
-      setTimeout(() => { saved.textContent = ''; }, 1500);
-    });
-    const saved = document.createElement('div');
-    saved.className = 'note-saved';
-    detail.append(label, ta, saved);
-  }
+  const label = document.createElement('div');
+  label.className = 'hint';
+  label.textContent = t('note');
+  const ta = document.createElement('textarea');
+  ta.className = 'note-area';
+  ta.placeholder = t('notePlaceholder');
+  ta.value = note || '';
+  ta.addEventListener('click', (e) => e.stopPropagation());
+  ta.addEventListener('input', () => {
+    store.setNote(s.id, ta.value);
+    saved.textContent = ta.value.trim() ? t('noteSaved') : '';
+    setTimeout(() => { saved.textContent = ''; }, 1500);
+  });
+  const saved = document.createElement('div');
+  saved.className = 'note-saved';
+  detail.append(label, ta, saved);
 
   item.appendChild(detail);
-  if (opts.noNote) item.style.cursor = 'default';
-  else item.addEventListener('click', () => item.classList.toggle('open'));
-
+  item.addEventListener('click', () => item.classList.toggle('open'));
   return item;
+}
+
+function badge(text, cls) {
+  const b = document.createElement('span');
+  b.className = 'badge' + (cls ? ' ' + cls : '');
+  b.textContent = text;
+  return b;
 }
 
 function renderLearn() {
   const list = $('learn-list');
   list.innerHTML = '';
   let items = allShortcuts().filter(visibleOn);
-  if (state.activeCat !== 'all') items = items.filter((s) => s.cat === state.activeCat);
+  if (activeCat !== 'all') items = items.filter((s) => s.cat === activeCat);
   if (!items.length) {
     const empty = document.createElement('p');
     empty.className = 'empty';
@@ -327,9 +194,7 @@ function renderLearn() {
   items.forEach((s) => list.appendChild(shortcutCard(s)));
 }
 
-// ────────────────────────────────────────────────────────────
-// Поиск
-// ────────────────────────────────────────────────────────────
+// ── Поиск ─────────────────────────────────────────────────
 function renderSearch() {
   const q = $('search-input').value.trim().toLowerCase();
   const list = $('search-list');
@@ -339,13 +204,12 @@ function renderSearch() {
 
   const results = allShortcuts().filter((s) => {
     if (!visibleOn(s)) return false;
+    const cat = CATEGORIES.find((c) => c.id === s.cat);
     const hay = [
       s.title.ru, s.title.en, s.desc.ru, s.desc.en,
       s.combo.mac, s.combo.win,
-      (CATEGORIES.find((c) => c.id === s.cat) || {}).title
+      cat ? cat.title.ru : '', cat ? cat.title.en : ''
     ].filter(Boolean);
-    const catTitle = CATEGORIES.find((c) => c.id === s.cat);
-    if (catTitle && catTitle.title && catTitle.title.ru) hay.push(catTitle.title.ru, catTitle.title.en);
     return hay.join(' ').toLowerCase().includes(q);
   });
 
@@ -360,13 +224,11 @@ function renderSearch() {
   results.forEach((s) => list.appendChild(shortcutCard(s)));
 }
 
-// ────────────────────────────────────────────────────────────
-// Заметки и свои сочетания
-// ────────────────────────────────────────────────────────────
+// ── Заметки ───────────────────────────────────────────────
 function renderNotes() {
   const list = $('notes-list');
   list.innerHTML = '';
-  const withNotes = allShortcuts().filter((s) => notes[s.id]);
+  const withNotes = allShortcuts().filter((s) => store.notes[s.id]);
   $('notes-empty').classList.toggle('hidden', withNotes.length > 0);
   withNotes.forEach((s) => {
     const card = shortcutCard(s);
@@ -376,7 +238,7 @@ function renderNotes() {
 
   const cl = $('custom-list');
   cl.innerHTML = '';
-  custom.forEach((c) => {
+  store.custom.forEach((c) => {
     const item = document.createElement('div');
     item.className = 'shortcut-item';
     const head = document.createElement('div');
@@ -392,11 +254,7 @@ function renderNotes() {
     const del = document.createElement('button');
     del.className = 'del-btn';
     del.textContent = '✕ ' + t('customDelete');
-    del.onclick = () => {
-      custom = custom.filter((x) => x.id !== c.id);
-      save('ht_custom', custom);
-      renderAll();
-    };
+    del.onclick = () => { store.removeCustom(c.id); renderAll(); };
     right.append(combo, del);
     head.append(title, right);
     item.appendChild(head);
@@ -408,198 +266,229 @@ function addCustom() {
   const name = $('custom-name').value.trim();
   const combo = $('custom-combo').value.trim();
   if (!name || !combo) return;
-  custom.push({ id: 'custom-' + Date.now(), title: name, combo });
-  save('ht_custom', custom);
+  store.addCustom(name, combo);
   $('custom-name').value = '';
   $('custom-combo').value = '';
   renderAll();
 }
 
-// ────────────────────────────────────────────────────────────
-// Тренажёр
-// ────────────────────────────────────────────────────────────
-function trainerPool() {
-  let items = allShortcuts().filter(
-    (s) => visibleOn(s) && !isOsLevel(s, state.platform) && comboFor(s, state.platform)
-  );
-  const cat = $('trainer-category').value;
-  if (cat && cat !== 'all') items = items.filter((s) => s.cat === cat);
-  // перемешать
-  for (let i = items.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [items[i], items[j]] = [items[j], items[i]];
-  }
-  return items;
-}
-
-function fillTrainerCategories() {
-  const sel = $('trainer-category');
-  const prev = sel.value;
+// ── Карта клавиш ──────────────────────────────────────────
+function fillMapSelect() {
+  const sel = $('map-select');
+  const prev = mapSelectedId;
   sel.innerHTML = '';
-  const add = (val, label) => {
-    const o = document.createElement('option');
-    o.value = val; o.textContent = label;
-    sel.appendChild(o);
-  };
-  add('all', t('trainerAll'));
-  const poolAll = allShortcuts().filter((s) => visibleOn(s) && !isOsLevel(s, state.platform));
-  CATEGORIES.filter((c) => c.id !== 'my').forEach((c) => {
-    const n = poolAll.filter((s) => s.cat === c.id).length;
-    if (n > 0) add(c.id, `${c.icon} ${c.title[state.lang]} (${n})`);
-  });
-  if (poolAll.some((s) => s.cat === 'my')) {
-    add('my', `⭐ ${CATEGORIES.find((c) => c.id === 'my').title[state.lang]}`);
+  const items = allShortcuts().filter(visibleOn);
+  for (const c of CATEGORIES) {
+    const inCat = items.filter((s) => s.cat === c.id);
+    if (!inCat.length) continue;
+    const og = document.createElement('optgroup');
+    og.label = `${c.icon} ${c.title[store.lang]}`;
+    inCat.forEach((s) => {
+      const o = document.createElement('option');
+      o.value = s.id;
+      o.textContent = `${s.title[store.lang]} — ${comboFor(s, store.platform)}`;
+      og.appendChild(o);
+    });
+    sel.appendChild(og);
   }
-  if ([...sel.options].some((o) => o.value === prev)) sel.value = prev;
+  if (prev && [...sel.options].some((o) => o.value === prev)) sel.value = prev;
+  else if (sel.options.length) mapSelectedId = sel.options[0].value;
 }
 
-function setTrainerActive(active) {
-  if (window.hotkeysTrainer && typeof window.hotkeysTrainer.setTrainerMode === 'function') {
-    window.hotkeysTrainer.setTrainerMode(active).catch(() => {});
-  }
-}
-
-function startTrainer() {
-  const tr = state.trainer;
-  tr.pool = trainerPool();
-  if (!tr.pool.length) return;
-  tr.idx = 0; tr.score = 0; tr.attempts = 0; tr.streak = 0; tr.best = 0; tr.locked = false;
-  tr.running = true;
-  setTrainerActive(true);
-  $('trainer-setup').classList.add('hidden');
-  $('trainer-result').classList.add('hidden');
-  $('trainer-game').classList.remove('hidden');
-  updateStats();
-  showTask();
-}
-
-function stopTrainer(showResult = true) {
-  const tr = state.trainer;
-  tr.running = false;
-  tr.locked = false;
-  setTrainerActive(false);
-  $('trainer-game').classList.add('hidden');
-  if (showResult) {
-    $('trainer-result').classList.remove('hidden');
-    renderResult();
-  } else {
-    $('trainer-setup').classList.remove('hidden');
-  }
-}
-
-function currentTask() {
-  return state.trainer.pool[state.trainer.idx];
-}
-
-function showTask() {
-  const tr = state.trainer;
-  if (tr.idx >= tr.pool.length) { stopTrainer(true); return; }
-  const s = currentTask();
-  tr.locked = false;
-  $('task-title').textContent = s.title[state.lang];
-  $('task-desc').textContent = s.desc[state.lang] || '';
-  $('task-prompt').textContent = t('trainerPrompt');
-  $('key-display').innerHTML = '';
-  const fb = $('trainer-feedback');
-  fb.className = 'trainer-feedback hidden';
-  fb.textContent = '';
-  $('trainer-card').classList.remove('ok', 'fail');
-}
-
-function updateStats() {
-  const tr = state.trainer;
-  $('stat-score').textContent = tr.score;
-  $('stat-attempts').textContent = tr.attempts;
-  $('stat-streak').textContent = tr.streak;
-}
-
-function onTrainerKey(e) {
-  const tr = state.trainer;
-  e.preventDefault();
-  e.stopPropagation();
-  if (tr.locked || !tr.running) return;
-  if (e.repeat) return;
-  if (['Shift', 'Control', 'Meta', 'Alt', 'CapsLock', 'Dead'].includes(e.key)) return;
-
-  const tokens = pressedTokens(e);
-  renderTokens($('key-display'), tokens);
-
-  const s = currentTask();
+function renderMap() {
+  fillMapSelect();
+  const sel = $('map-select');
+  const items = allShortcuts().filter(visibleOn);
+  const s = items.find((x) => x.id === sel.value) || items[0];
   if (!s) return;
-  const exp = parseCombo(comboFor(s, state.platform));
-  const fb = $('trainer-feedback');
-  const card = $('trainer-card');
+  mapSelectedId = s.id;
 
-  if (eventMatches(e, exp)) {
-    tr.attempts++;
-    tr.score++;
-    tr.streak++;
-    tr.best = Math.max(tr.best, tr.streak);
-    tr.locked = true;
-    fb.className = 'trainer-feedback ok';
-    fb.textContent = t('trainerCorrect');
-    card.classList.remove('fail');
-    card.classList.add('ok');
-    updateStats();
-    setTimeout(() => {
-      tr.idx++;
-      showTask();
-    }, 850);
+  const combo = comboFor(s, store.platform);
+  renderComboChips($('map-combo'), combo);
+  $('map-desc').textContent = (s.desc[store.lang] || '') + (s.opens ? ' · ' + s.opens[store.lang] : '');
+
+  // подсветка: комбинация (+ ключ-фильтр, если выбран)
+  let keyIds = comboToKeyIds(combo);
+  if (mapKeyFilter) keyIds = [...new Set([...keyIds, mapKeyFilter])];
+  renderKeyboard($('map-keyboard'), store.platform, keyIds);
+
+  // список сочетаний, содержащих выбранные клавиши
+  const filter = mapKeyFilter ? [mapKeyFilter] : null;
+  const related = filter
+    ? items.filter((x) => comboToKeyIds(comboFor(x, store.platform)).some((id) => filter.includes(id)))
+    : [s];
+
+  $('map-count').textContent = filter
+    ? `${t('mapRelated')} · ${t('mapFilterBy')} [${filter.join(', ')}] — ${related.length}`
+    : `${t('mapSelectLabel')}: ${related.length}`;
+  const list = $('map-list');
+  list.innerHTML = '';
+  if (!related.length) {
+    const p = document.createElement('p');
+    p.className = 'empty';
+    p.textContent = t('mapNone');
+    list.appendChild(p);
+    return;
+  }
+  related.forEach((x) => list.appendChild(shortcutCard(x)));
+}
+
+// ── Прогресс ──────────────────────────────────────────────
+function renderProgress() {
+  const ids = availableIds();
+  const sum = store.summary(ids);
+
+  $('prog-learned').textContent = `${sum.learned}/${sum.total}`;
+  $('prog-accuracy').textContent = sum.accuracy + '%';
+  $('prog-attempts').textContent = sum.attempts;
+  $('prog-streak').textContent = sum.streak;
+
+  // челлендж
+  const d = store.daily();
+  setBar('daily-new', d.newDone, d.goalNew);
+  setBar('daily-review', d.reviewDone, d.goalReview);
+  const done = d.newDone >= d.goalNew && d.reviewDone >= d.goalReview;
+  $('daily-streak').textContent = done
+    ? t('dailyDone')
+    : (d.streak > 0 ? t('dailyStreak').replace('{n}', d.streak) : t('dailyStreakZero'));
+
+  // график 7 дней
+  const chart = $('chart');
+  chart.innerHTML = '';
+  const max = Math.max(1, ...sum.days.map((x) => x.attempts));
+  for (const day of sum.days) {
+    const col = document.createElement('div');
+    col.className = 'chart-col';
+    const h = day.attempts ? Math.max(6, Math.round((day.attempts / max) * 100)) : 2;
+    col.innerHTML = `<div class="chart-bar-wrap"><div class="chart-bar" style="height:${h}%" title="${day.date}: ${day.attempts}"></div></div>
+      <div class="chart-label"></div>`;
+    col.querySelector('.chart-label').textContent =
+      new Date(day.date + 'T12:00:00').toLocaleDateString(
+        store.lang === 'ru' ? 'ru-RU' : 'en-US', { weekday: 'short' });
+    if (!day.attempts) col.classList.add('dim');
+    chart.appendChild(col);
+  }
+
+  // категории
+  const catsBox = $('cat-progress');
+  catsBox.innerHTML = '';
+  const stats = store.categoryStats(CATEGORIES, itemsInCat);
+  for (const st of stats) {
+    const pct = Math.round((st.learned / st.total) * 100);
+    const row = document.createElement('div');
+    row.className = 'daily-row';
+    row.innerHTML = `<span>${st.cat.icon} ${st.cat.title[store.lang]}</span>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+      <span class="daily-count">${st.learned}/${st.total}</span>`;
+    catsBox.appendChild(row);
+  }
+
+  // слабые места
+  const weakBox = $('weak-list');
+  weakBox.innerHTML = '';
+  const weak = store.weakSpots(ids);
+  if (!weak.length) {
+    const p = document.createElement('p');
+    p.className = 'empty';
+    p.textContent = t('weakNone');
+    weakBox.appendChild(p);
   } else {
-    tr.attempts++;
-    tr.streak = 0;
-    fb.className = 'trainer-feedback fail';
-    fb.textContent = `${t('trainerWrong')} — ${t('trainerYourPress')} ${tokens.join('+')}`;
-    card.classList.remove('ok');
-    card.classList.add('fail');
-    updateStats();
-    setTimeout(() => card.classList.remove('fail'), 350);
+    for (const w of weak) {
+      const s = allShortcuts().find((x) => x.id === w.id);
+      if (!s) continue;
+      const item = document.createElement('div');
+      item.className = 'shortcut-item';
+      const head = document.createElement('div');
+      head.className = 'shortcut-head';
+      const title = document.createElement('div');
+      title.className = 'shortcut-title';
+      title.textContent = s.title[store.lang];
+      const acc = badge(`${t('weakAccuracy')}: ${Math.round(w.acc * 100)}%`, 'weak-badge');
+      title.appendChild(acc);
+      const keys = document.createElement('div');
+      keys.className = 'keys';
+      renderComboChips(keys, comboFor(s, store.platform));
+      const train = document.createElement('button');
+      train.className = 'btn ghost';
+      train.textContent = t('weakTrain');
+      train.onclick = (e) => {
+        e.stopPropagation();
+        trainer.setMode('classic');
+        switchTab('trainer');
+        trainer.start({ ids: [w.id, ...ids.filter((x) => x !== w.id).sort(() => Math.random() - 0.5).slice(0, 9)] });
+      };
+      keys.appendChild(train);
+      head.append(title, keys);
+      item.appendChild(head);
+      const desc = document.createElement('p');
+      desc.className = 'shortcut-desc';
+      desc.textContent = s.desc[store.lang] || '';
+      item.appendChild(desc);
+      weakBox.appendChild(item);
+    }
   }
 }
 
-function showAnswer() {
-  const s = currentTask();
-  if (!s) return;
-  const combo = comboFor(s, state.platform);
-  renderTokens($('key-display'), combo.split('+').map((x) => x.trim()));
-  const fb = $('trainer-feedback');
-  fb.className = 'trainer-feedback';
-  fb.style.color = 'var(--yellow)';
-  fb.textContent = `${t('comboLabel')}: ${combo}`;
+function setBar(prefix, value, goal) {
+  const pct = Math.min(100, Math.round((value / Math.max(1, goal)) * 100));
+  $(prefix + '-bar').style.width = pct + '%';
+  $(prefix + '-count').textContent = `${value}/${goal}`;
 }
 
-function renderResult() {
-  const tr = state.trainer;
-  const acc = tr.attempts ? Math.round((tr.score / tr.attempts) * 100) : 0;
-  $('result-stats').innerHTML = `
-    <div><b>${tr.score}</b>${t('trainerScore')}</div>
-    <div><b>${tr.attempts}</b>${t('trainerAttempts')}</div>
-    <div><b>${tr.best}</b>${t('trainerStreak')}</div>
-    <div><b>${acc}%</b>%</div>`;
+// ── Экспорт / импорт ──────────────────────────────────────
+async function exportData() {
+  const status = $('data-status');
+  status.textContent = '…';
+  try {
+    const json = store.exportBundle();
+    const path = await window.hotkeysTrainer.exportData(json);
+    status.textContent = path ? `${t('dataExported')} ${path}` : '';
+  } catch {
+    status.textContent = t('dataImportErr');
+  }
 }
 
-// ────────────────────────────────────────────────────────────
-// Табы и события
-// ────────────────────────────────────────────────────────────
+async function importData() {
+  const status = $('data-status');
+  try {
+    const res = await window.hotkeysTrainer.importData();
+    if (!res) return;
+    if (res.error) { status.textContent = t('dataImportErr'); return; }
+    if (store.importBundle(res)) {
+      status.textContent = t('dataImported');
+      renderAll();
+    } else status.textContent = t('dataImportErr');
+  } catch {
+    status.textContent = t('dataImportErr');
+  }
+}
+
+// ── Табы ──────────────────────────────────────────────────
 function switchTab(tab) {
-  state.tab = tab;
   document.querySelectorAll('.tabs button').forEach((b) =>
     b.classList.toggle('active', b.dataset.tab === tab));
   document.querySelectorAll('.panel').forEach((p) =>
     p.classList.toggle('active', p.id === 'panel-' + tab));
   if (tab === 'search') setTimeout(() => $('search-input').focus(), 50);
   if (tab === 'notes') renderNotes();
+  if (tab === 'map') renderMap();
+  if (tab === 'progress') renderProgress();
+  if (tab === 'learn') { renderChips(); renderLearn(); }
 }
 
+// ── Общий рендер ──────────────────────────────────────────
 function renderAll() {
   applyStatic();
-  fillTrainerCategories();
+  trainer.applyLabels();
   renderChips();
   renderLearn();
   renderSearch();
   renderNotes();
+  if ($('panel-map').classList.contains('active')) renderMap();
+  if ($('panel-progress').classList.contains('active')) renderProgress();
 }
 
+// ── События ───────────────────────────────────────────────
 function bindEvents() {
   $('tabs').addEventListener('click', (e) => {
     const btn = e.target.closest('button[data-tab]');
@@ -609,47 +498,47 @@ function bindEvents() {
   $('lang-switch').addEventListener('click', (e) => {
     const btn = e.target.closest('button[data-lang]');
     if (!btn) return;
-    state.lang = btn.dataset.lang;
-    localStorage.setItem('ht_lang', state.lang);
+    store.setLang(btn.dataset.lang);
     renderAll();
   });
 
   $('platform-switch').addEventListener('click', (e) => {
     const btn = e.target.closest('button[data-platform]');
     if (!btn) return;
-    if (state.trainer.running) stopTrainer(false);
-    state.platform = btn.dataset.platform;
+    store.setPlatformChoice(btn.dataset.platform);
     renderAll();
-    $('trainer-setup').classList.remove('hidden');
+  });
+
+  $('theme-switch').addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-theme]');
+    if (!btn) return;
+    store.setTheme(btn.dataset.theme);
+    applyStatic();
   });
 
   $('search-input').addEventListener('input', renderSearch);
   $('custom-add').addEventListener('click', addCustom);
   $('custom-combo').addEventListener('keydown', (e) => { if (e.key === 'Enter') addCustom(); });
 
-  $('trainer-start').addEventListener('click', startTrainer);
-  $('trainer-again').addEventListener('click', () => {
-    $('trainer-result').classList.add('hidden');
-    $('trainer-setup').classList.remove('hidden');
+  $('map-select').addEventListener('change', () => { mapKeyFilter = null; renderMap(); });
+  $('map-keyboard').addEventListener('click', (e) => {
+    const key = e.target.closest('.kb-key');
+    if (!key || !key.dataset.keyId) return;
+    mapKeyFilter = mapKeyFilter === key.dataset.keyId ? null : key.dataset.keyId;
+    renderMap();
   });
-  $('trainer-stop').addEventListener('click', () => stopTrainer(true));
-  $('trainer-skip').addEventListener('click', () => {
-    if (!state.trainer.running) return;
-    state.trainer.streak = 0;
-    state.trainer.idx++;
-    updateStats();
-    showTask();
-  });
-  $('trainer-answer').addEventListener('click', showAnswer);
+  $('map-clear').addEventListener('click', () => { mapKeyFilter = null; renderMap(); });
 
-  window.addEventListener('keydown', (e) => {
-    if (state.trainer.running) onTrainerKey(e);
-  }, true);
+  $('export-btn').addEventListener('click', exportData);
+  $('import-btn').addEventListener('click', importData);
 }
 
-// ────────────────────────────────────────────────────────────
-// Запуск
-// ────────────────────────────────────────────────────────────
+// ── Запуск ────────────────────────────────────────────────
 bindEvents();
+trainer.init({
+  allShortcuts,
+  categories: () => CATEGORIES,
+  onFinished: () => { /* прогресс перерисуется при переходе на вкладку */ }
+});
 renderAll();
 switchTab('learn');
