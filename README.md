@@ -14,11 +14,19 @@ Desktop app for learning, practicing and searching keyboard shortcuts on **macOS
 
 ## 🚀 Запуск / Run
 
-Требуется [Node.js](https://nodejs.org) 18+.
+Требуется [Node.js](https://nodejs.org) 22.12+ (для менеджера версий: `nvm use`).
 
 ```bash
 npm install
 npm start
+```
+
+## 🧪 Тест / Test
+
+Smoke-тест проверяет вкладки, поиск, тренажёр, заметки и переключение языка/платформы:
+
+```bash
+npm test
 ```
 
 ## 📦 Сборка дистрибутива / Build
@@ -47,6 +55,7 @@ npm run dist:win
 | `src/data.js` | каталог сочетаний для macOS/Windows |
 | `src/i18n.js` | строки интерфейса RU/EN |
 | `src/styles.css` | стили |
+| `smoke-test.js` | smoke-тест интерфейса (`npm test`) |
 
 ## 🛠 Технологии
 
