@@ -4,6 +4,7 @@ import { I18N } from './i18n.js';
 import { store } from './store.js';
 import { renderKeyboard, comboToKeyIds, renderTokenChips, renderComboChips } from './keyboard.js';
 import { TYPING_TEXTS } from './typing.js';
+import { sfx } from './sfx.js';
 
 const $ = (id) => document.getElementById(id);
 const t = (key) => I18N[store.lang][key] ?? key;
@@ -165,6 +166,7 @@ export const trainer = {
     setTrainerActive(false);
     $('trainer-game').classList.add('hidden');
     if (showResult && mode !== 'typing') {
+      sfx.finish();
       $('trainer-result').classList.remove('hidden');
       renderResult();
       if (ctx && ctx.onFinished) ctx.onFinished();
@@ -219,6 +221,7 @@ function applyLabels() {
   $('typing-restart').textContent = t('typeRestart');
   $('result-title').textContent = mode === 'sprint' ? t('sprintEndTitle') : t('trainerFinished');
   fillCategorySelect();
+  renderTip();
 }
 
 function fillCategorySelect() {
@@ -281,6 +284,7 @@ function handleClassic(ok, s) {
     best = Math.max(best, streak);
     locked = true;
     store.record(s.id, wrongThisTask === 0);
+    sfx.correct();
     const fb = $('trainer-feedback');
     fb.className = 'trainer-feedback ok';
     fb.textContent = t('trainerCorrect');
@@ -292,6 +296,7 @@ function handleClassic(ok, s) {
     attempts++;
     streak = 0;
     wrongThisTask++;
+    sfx.wrong();
     const fb = $('trainer-feedback');
     fb.className = 'trainer-feedback fail';
     fb.textContent = t('trainerWrong');
@@ -309,6 +314,7 @@ function startTimer() {
   timer = setInterval(() => {
     timeLeft -= 1;
     $('sprint-time').textContent = Math.max(0, timeLeft);
+    if (timeLeft <= 5 && timeLeft > 0) sfx.tick();
     if (timeLeft <= 0) trainer.stop(true);
   }, 1000);
 }
@@ -320,6 +326,7 @@ function handleSprint(ok, s) {
     score++; streak++;
     best = Math.max(best, streak);
     store.record(s.id, true);
+    sfx.correct();
     idx = (idx + 1) % pool.length;
     const fb = $('trainer-feedback');
     fb.className = 'trainer-feedback ok';
@@ -330,6 +337,7 @@ function handleSprint(ok, s) {
   } else {
     streak = 0;
     store.record(s.id, false);
+    sfx.wrong();
     const fb = $('trainer-feedback');
     fb.className = 'trainer-feedback fail';
     fb.textContent = `${t('trainerWrong')}`;
@@ -381,8 +389,8 @@ function answerQuiz(ok, btn, chosen, correct) {
   quizLocked = true;
   attempts++;
   store.record(correct.id, ok);
-  if (ok) { score++; streak++; best = Math.max(best, streak); }
-  else streak = 0;
+  if (ok) { score++; streak++; best = Math.max(best, streak); sfx.correct(); }
+  else { streak = 0; sfx.wrong(); }
   updateStats();
 
   document.querySelectorAll('.quiz-option').forEach((b) => b.disabled = true);
@@ -451,6 +459,7 @@ function finishTyping(val) {
   typeDone = true;
   const st = updateTypingLive(val);
   store.setTypingBest(st.wpm);
+  sfx.finish();
   running = false;
   $('trainer-game').classList.add('hidden');
   $('trainer-result').classList.remove('hidden');
@@ -502,6 +511,30 @@ function onKey(e) {
   const ok = eventMatches(e, exp);
   if (mode === 'sprint') handleSprint(ok, s);
   else handleClassic(ok, s);
+}
+
+// ── Совет дня (вкладка тренажёра, не главная) ─────────────
+function renderTip() {
+  const body = $('tip-body');
+  if (!body || !ctx) return;
+  const platform = store.platform;
+  const items = ctx.allShortcuts().filter((s) => comboFor(s, platform));
+  if (!items.length) { body.innerHTML = ''; return; }
+  // детерминированный выбор по дате — один совет в течение дня
+  const now = new Date();
+  const dayKey = now.getFullYear() * 10000 + (now.getMonth() + 1) * 100 + now.getDate();
+  const s = items[dayKey % items.length];
+  body.innerHTML = '';
+  const combo = document.createElement('div');
+  combo.className = 'tip-combo';
+  renderComboChips(combo, comboFor(s, platform));
+  const title = document.createElement('div');
+  title.className = 'tip-title';
+  title.textContent = `${s.title[store.lang]} — ${comboFor(s, platform)}`;
+  const desc = document.createElement('div');
+  desc.className = 'tip-desc';
+  desc.textContent = s.desc[store.lang] || '';
+  body.append(combo, title, desc);
 }
 
 // ── События ───────────────────────────────────────────────

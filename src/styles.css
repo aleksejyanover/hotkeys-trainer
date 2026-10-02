@@ -1,49 +1,49 @@
 :root,
 :root[data-theme="dark"] {
-  --bg: #0f1117;
-  --bg-soft: #171a23;
-  --bg-card: #1d2130;
-  --bg-hover: #242939;
-  --border: #2c3246;
-  --text: #e8eaf2;
-  --text-dim: #9aa1b8;
-  --accent: #6c8cff;
-  --accent-2: #8f6cff;
-  --green: #38d39f;
-  --red: #ff6b81;
-  --yellow: #ffd166;
-  --header1: #171a2b;
-  --header2: #12141d;
-  --key-bg: linear-gradient(180deg, #2a3044, #212636);
-  --key-border: #3a415a;
-  --card2: linear-gradient(160deg, #1b2032, #171b28);
+  --bg: #0a1216;
+  --bg-soft: #0f1b21;
+  --bg-card: #132229;
+  --bg-hover: #1a2f38;
+  --border: #23404b;
+  --text: #e4f2f0;
+  --text-dim: #8fadb1;
+  --accent: #2dd4bf;
+  --accent-2: #38bdf8;
+  --green: #4ade80;
+  --red: #fb7185;
+  --yellow: #fbbf24;
+  --header1: #10242a;
+  --header2: #0b1a20;
+  --key-bg: linear-gradient(180deg, #1d3540, #162b34);
+  --key-border: #2f5563;
+  --card2: linear-gradient(160deg, #14262e, #101f26);
   --shadow: none;
-  --kb-bg: #14172266;
-  --kb-key-bg: #1e2333;
+  --kb-bg: #0d1a2099;
+  --kb-key-bg: #17303a;
   --kb-hl: linear-gradient(180deg, var(--accent), var(--accent-2));
   --radius: 14px;
 }
 
 :root[data-theme="light"] {
-  --bg: #f2f4fa;
+  --bg: #ecf5f4;
   --bg-soft: #ffffff;
   --bg-card: #ffffff;
-  --bg-hover: #eef1f9;
-  --border: #d9dfee;
-  --text: #1a1f30;
-  --text-dim: #5c6580;
-  --accent: #4a6cf7;
-  --accent-2: #7b5cf5;
-  --green: #14a97b;
-  --red: #e5485f;
-  --yellow: #c78a00;
+  --bg-hover: #e0f0ee;
+  --border: #c9e2df;
+  --text: #0d1e22;
+  --text-dim: #4d6a70;
+  --accent: #0d9488;
+  --accent-2: #0284c7;
+  --green: #16a34a;
+  --red: #e11d48;
+  --yellow: #b45309;
   --header1: #ffffff;
-  --header2: #eef1fa;
-  --key-bg: linear-gradient(180deg, #ffffff, #e9edf8);
-  --key-border: #c6cfe6;
-  --card2: linear-gradient(160deg, #ffffff, #f6f8fd);
-  --shadow: 0 1px 3px rgba(20, 30, 70, .08);
-  --kb-bg: #e9edf7;
+  --header2: #e6f3f1;
+  --key-bg: linear-gradient(180deg, #ffffff, #e6f1ef);
+  --key-border: #bcd8d4;
+  --card2: linear-gradient(160deg, #ffffff, #f3faf9);
+  --shadow: 0 1px 3px rgba(13, 60, 55, .08);
+  --kb-bg: #e3efed;
   --kb-key-bg: #ffffff;
   --kb-hl: linear-gradient(180deg, var(--accent), var(--accent-2));
 }
@@ -82,7 +82,7 @@ html, body {
   font-size: 26px;
   background: linear-gradient(135deg, var(--accent), var(--accent-2));
   border-radius: 12px;
-  box-shadow: 0 6px 18px rgba(108, 140, 255, .35);
+  box-shadow: 0 6px 18px rgba(45, 212, 191, .35);
 }
 
 h1 { margin: 0; font-size: 19px; letter-spacing: .2px; }
@@ -181,13 +181,13 @@ main { padding: 22px 24px 40px; max-width: 1040px; margin: 0 auto; }
   letter-spacing: .5px;
   padding: 2px 8px;
   border-radius: 999px;
-  background: rgba(255, 209, 102, .15);
+  background: rgba(251, 191, 36, .15);
   color: var(--yellow);
-  border: 1px solid rgba(255, 209, 102, .4);
+  border: 1px solid rgba(251, 191, 36, .4);
 }
-.badge.note-badge { background: rgba(56, 211, 159, .14); color: var(--green); border-color: rgba(56, 211, 159, .4); }
-.badge.learned-badge { background: rgba(108, 140, 255, .14); color: var(--accent); border-color: rgba(108, 140, 255, .45); }
-.badge.weak-badge { background: rgba(255, 107, 129, .14); color: var(--red); border-color: rgba(255, 107, 129, .45); }
+.badge.note-badge { background: rgba(74, 222, 128, .14); color: var(--green); border-color: rgba(74, 222, 128, .4); }
+.badge.learned-badge { background: rgba(45, 212, 191, .14); color: var(--accent); border-color: rgba(45, 212, 191, .45); }
+.badge.weak-badge { background: rgba(251, 113, 133, .14); color: var(--red); border-color: rgba(251, 113, 133, .45); }
 
 .keys { display: flex; gap: 6px; flex-shrink: 0; flex-wrap: wrap; justify-content: flex-end; align-items: center; }
 kbd {
@@ -246,12 +246,12 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); }
   border: 0;
   color: #fff;
   font-weight: 600;
-  box-shadow: 0 6px 18px rgba(108, 140, 255, .3);
+  box-shadow: 0 6px 18px rgba(45, 212, 191, .3);
 }
 .btn.primary:hover { filter: brightness(1.1); }
 .btn.ghost { background: transparent; }
-.btn.danger { border-color: rgba(255, 107, 129, .5); color: var(--red); }
-.btn.danger:hover { background: rgba(255, 107, 129, .12); border-color: var(--red); }
+.btn.danger { border-color: rgba(251, 113, 133, .5); color: var(--red); }
+.btn.danger:hover { background: rgba(251, 113, 133, .12); border-color: var(--red); }
 
 /* ── Trainer ────────────────────────── */
 .trainer-setup, .trainer-game, .trainer-result {
@@ -295,8 +295,8 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); }
   gap: 8px;
   transition: border-color .2s, box-shadow .2s;
 }
-.trainer-card.ok { border-color: var(--green); box-shadow: 0 0 0 3px rgba(56, 211, 159, .18); }
-.trainer-card.fail { border-color: var(--red); box-shadow: 0 0 0 3px rgba(255, 107, 129, .18); animation: shake .3s; }
+.trainer-card.ok { border-color: var(--green); box-shadow: 0 0 0 3px rgba(74, 222, 128, .18); }
+.trainer-card.fail { border-color: var(--red); box-shadow: 0 0 0 3px rgba(251, 113, 133, .18); animation: shake .3s; }
 @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
 
 .trainer-task-title { font-size: 21px; font-weight: 700; margin: 0; }
@@ -330,8 +330,8 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); }
   text-align: left;
 }
 .quiz-option:hover:not(:disabled) { border-color: var(--accent); background: var(--bg-hover); }
-.quiz-option.right { border-color: var(--green); background: rgba(56, 211, 159, .14); color: var(--green); font-weight: 700; }
-.quiz-option.wrong { border-color: var(--red); background: rgba(255, 107, 129, .12); color: var(--red); }
+.quiz-option.right { border-color: var(--green); background: rgba(74, 222, 128, .14); color: var(--green); font-weight: 700; }
+.quiz-option.wrong { border-color: var(--red); background: rgba(251, 113, 133, .12); color: var(--red); }
 .quiz-option:disabled { cursor: default; }
 
 /* ── Печать ─────────────────────────── */
@@ -346,7 +346,7 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); }
   user-select: text;
 }
 .typing-text span.ok { color: var(--green); }
-.typing-text span.err { color: var(--red); background: rgba(255, 107, 129, .18); border-radius: 3px; }
+.typing-text span.err { color: var(--red); background: rgba(251, 113, 133, .18); border-radius: 3px; }
 .typing-text span.cur { border-bottom: 2px solid var(--accent); animation: blink 1s step-end infinite; }
 @keyframes blink { 50% { border-color: transparent; } }
 .typing-input {
@@ -401,10 +401,10 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); }
   background: var(--kb-hl);
   color: #fff;
   border-color: transparent;
-  box-shadow: 0 4px 12px rgba(108, 140, 255, .4);
+  box-shadow: 0 4px 12px rgba(45, 212, 191, .4);
   animation: glow 1.4s ease-in-out infinite alternate;
 }
-.kb-key.hl2 { background: rgba(108, 140, 255, .35); color: var(--text); border-color: var(--accent); }
+.kb-key.hl2 { background: rgba(45, 212, 191, .35); color: var(--text); border-color: var(--accent); }
 .kb-key.kb-spacer { background: transparent; border: 0; width: 12px; }
 @keyframes glow { from { filter: brightness(1); } to { filter: brightness(1.25); } }
 
@@ -447,6 +447,17 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); }
 .empty { color: var(--text-dim); font-size: 14px; padding: 14px 0; }
 .combo-text { font-weight: 600; color: var(--accent); }
 .del-btn { background: none; border: 0; color: var(--red); cursor: pointer; font-size: 13px; }
+
+/* ── Совет дня ─────────────────────── */
+.tip-block {
+  background: linear-gradient(135deg, rgba(45, 212, 191, .10), rgba(56, 189, 248, .10));
+  border: 1px solid rgba(45, 212, 191, .35);
+}
+.tip-block h2 { display: flex; align-items: center; gap: 8px; }
+.tip-body { display: flex; flex-direction: column; gap: 8px; }
+.tip-combo { display: flex; gap: 6px; flex-wrap: wrap; }
+.tip-title { font-weight: 700; font-size: 16px; }
+.tip-desc { color: var(--text-dim); font-size: 14px; line-height: 1.5; }
 
 @media (max-width: 720px) {
   .header { flex-direction: column; align-items: flex-start; }

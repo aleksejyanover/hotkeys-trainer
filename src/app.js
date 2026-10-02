@@ -44,6 +44,8 @@ function applyStatic() {
   $('lang-label').textContent = t('language');
   $('platform-label').textContent = t('platform');
   $('theme-label').textContent = t('theme');
+  $('sound-label').textContent = t('sound');
+  $('tip-title').textContent = t('tipTitle');
 
   $('search-input').placeholder = t('searchPlaceholder');
   $('notes-title').textContent = '⭐ ' + t('tabNotes');
@@ -79,6 +81,8 @@ function applyStatic() {
     b.classList.toggle('active', b.dataset.platform === store.platformChoice));
   document.querySelectorAll('#theme-switch button').forEach((b) =>
     b.classList.toggle('active', b.dataset.theme === store.theme));
+  document.querySelectorAll('#sound-switch button').forEach((b) =>
+    b.classList.toggle('active', (b.dataset.sound === 'on') === store.sfxEnabled));
 }
 
 // ── Учебник ───────────────────────────────────────────────
@@ -513,6 +517,13 @@ function bindEvents() {
     const btn = e.target.closest('button[data-theme]');
     if (!btn) return;
     store.setTheme(btn.dataset.theme);
+    applyStatic();
+  });
+
+  $('sound-switch').addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-sound]');
+    if (!btn) return;
+    store.setSfxEnabled(btn.dataset.sound === 'on');
     applyStatic();
   });
 

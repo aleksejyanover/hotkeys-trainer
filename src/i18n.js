@@ -12,7 +12,9 @@ export const I18N = {
     platform: 'Платформа',
     autoPlatform: 'Авто',
     theme: 'Тема',
+    sound: 'Звук',
     language: 'Язык',
+    tipTitle: '💡 Совет дня',
 
     note: 'Заметка',
     notePlaceholder: 'Личная заметка к этому сочетанию…',
@@ -123,7 +125,9 @@ export const I18N = {
     platform: 'Platform',
     autoPlatform: 'Auto',
     theme: 'Theme',
+    sound: 'Sound',
     language: 'Language',
+    tipTitle: '💡 Tip of the day',
 
     note: 'Note',
     notePlaceholder: 'Personal note for this shortcut…',

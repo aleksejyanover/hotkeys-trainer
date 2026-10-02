@@ -38,6 +38,13 @@
           <button data-theme="light">☀️</button>
         </div>
       </div>
+      <div class="control-group">
+        <span class="control-label" id="sound-label">Звук</span>
+        <div class="segmented" id="sound-switch">
+          <button data-sound="on">🔊</button>
+          <button data-sound="off">🔇</button>
+        </div>
+      </div>
     </div>
   </header>
 
@@ -74,6 +81,12 @@
         <p class="hint" id="mode-hint"></p>
         <button id="trainer-start" class="btn primary">Начать тренировку</button>
         <p class="hint" id="trainer-hint"></p>
+      </div>
+
+      <!-- Совет дня (не на главной странице) -->
+      <div class="notes-block tip-block" id="tip-block">
+        <h2 id="tip-title">💡 Совет дня</h2>
+        <div class="tip-body" id="tip-body"></div>
       </div>
 
       <div class="trainer-game hidden" id="trainer-game">

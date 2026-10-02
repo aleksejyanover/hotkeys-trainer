@@ -25,7 +25,8 @@ function defaults() {
     progress: {}, // id -> {seen, correct, wrong, box, due, lastAt}
     days: {},     // 'YYYY-MM-DD' -> {attempts, correct, wrong}
     daily: null,  // {date, newDone, reviewDone, streak, lastDate}
-    typing: { best: 0 }
+    typing: { best: 0 },
+    sfx: true     // звуки в тренажёре
   };
 }
 
@@ -226,5 +227,8 @@ export const store = {
   typingBest() { return state.typing.best || 0; },
   setTypingBest(wpm) {
     if (wpm > (state.typing.best || 0)) { state.typing.best = wpm; save(); }
-  }
+  },
+
+  get sfxEnabled() { return state.sfx !== false; },
+  setSfxEnabled(on) { state.sfx = Boolean(on); save(); }
 };

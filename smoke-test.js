@@ -95,6 +95,7 @@ app.whenReady().then(() => {
     await step('CLASSIC', `(async () => {
       document.querySelector('[data-tab="trainer"]').click();
       await new Promise(r => setTimeout(r, 200));
+      const tip = document.getElementById('tip-body').textContent;
       document.getElementById('trainer-start').click();
       await new Promise(r => setTimeout(r, 300));
       const running = !document.getElementById('trainer-game').classList.contains('hidden');
@@ -114,7 +115,19 @@ app.whenReady().then(() => {
       await new Promise(r => setTimeout(r, 200));
       const result = !document.getElementById('trainer-result').classList.contains('hidden');
       document.getElementById('trainer-again').click();
-      return { running, task, fb: fb.slice(0, 20), attempts, kb, result };
+      return { running, task, fb: fb.slice(0, 20), attempts, kb, result, tip: tip.slice(0, 30) };
+    })()`);
+
+    // 6b. Звук: переключение
+    await step('SOUND', `(async () => {
+      document.querySelector('[data-sound="off"]').click();
+      await new Promise(r => setTimeout(r, 200));
+      const off = document.querySelector('#sound-switch [data-sound="off"]').classList.contains('active');
+      document.querySelector('[data-sound="on"]').click();
+      await new Promise(r => setTimeout(r, 200));
+      const on = document.querySelector('#sound-switch [data-sound="on"]').classList.contains('active');
+      const m = await import('./store.js');
+      return { off, on, sfx: m.store.sfxEnabled };
     })()`);
 
     // 7. Спринт
