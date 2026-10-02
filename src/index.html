@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'" />
+  <title>Тренажёр сочетаний клавиш</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="header">
+    <div class="brand">
+      <div class="logo">⌨️</div>
+      <div>
+        <h1 id="app-title">Тренажёр сочетаний клавиш</h1>
+        <p id="app-tagline" class="tagline"></p>
+      </div>
+    </div>
+    <div class="header-controls">
+      <div class="control-group">
+        <span class="control-label" id="lang-label">Язык</span>
+        <div class="segmented" id="lang-switch">
+          <button data-lang="ru" class="active">RU</button>
+          <button data-lang="en">EN</button>
+        </div>
+      </div>
+      <div class="control-group">
+        <span class="control-label" id="platform-label">Платформа</span>
+        <div class="segmented" id="platform-switch">
+          <button data-platform="mac">macOS</button>
+          <button data-platform="win">Windows</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <nav class="tabs" id="tabs">
+    <button data-tab="learn" class="active"><span class="tab-icon">📚</span><span id="tab-learn">Учебник</span></button>
+    <button data-tab="trainer"><span class="tab-icon">🎯</span><span id="tab-trainer">Тренажёр</span></button>
+    <button data-tab="search"><span class="tab-icon">🔍</span><span id="tab-search">Поиск</span></button>
+    <button data-tab="notes"><span class="tab-icon">⭐</span><span id="tab-notes">Заметки</span></button>
+  </nav>
+
+  <main>
+    <!-- УЧЕБНИК -->
+    <section id="panel-learn" class="panel active">
+      <div class="category-chips" id="category-chips"></div>
+      <div class="shortcut-list" id="learn-list"></div>
+    </section>
+
+    <!-- ТРЕНАЖЁР -->
+    <section id="panel-trainer" class="panel">
+      <div class="trainer-setup" id="trainer-setup">
+        <div class="field">
+          <label id="trainer-cat-label" for="trainer-category">Выбери категорию:</label>
+          <select id="trainer-category"></select>
+        </div>
+        <button id="trainer-start" class="btn primary">Начать тренировку</button>
+        <p class="hint" id="trainer-hint"></p>
+      </div>
+
+      <div class="trainer-game hidden" id="trainer-game">
+        <div class="trainer-stats">
+          <div class="stat"><span class="stat-value" id="stat-score">0</span><span class="stat-label" id="stat-score-label">Верно</span></div>
+          <div class="stat"><span class="stat-value" id="stat-attempts">0</span><span class="stat-label" id="stat-attempts-label">Попыток</span></div>
+          <div class="stat"><span class="stat-value" id="stat-streak">0</span><span class="stat-label" id="stat-streak-label">Серия</span></div>
+        </div>
+
+        <div class="trainer-card" id="trainer-card">
+          <p class="trainer-task-title" id="task-title"></p>
+          <p class="trainer-task-desc" id="task-desc"></p>
+          <p class="trainer-prompt" id="task-prompt">Нажми нужное сочетание на клавиатуре</p>
+          <div class="key-display" id="key-display"></div>
+          <div class="trainer-feedback hidden" id="trainer-feedback"></div>
+        </div>
+
+        <div class="trainer-actions">
+          <button id="trainer-answer" class="btn ghost">Показать ответ</button>
+          <button id="trainer-skip" class="btn ghost">Пропустить</button>
+          <button id="trainer-stop" class="btn danger">Завершить</button>
+        </div>
+      </div>
+
+      <div class="trainer-result hidden" id="trainer-result">
+        <div class="result-emoji">🏆</div>
+        <h2 id="result-title">Тренировка завершена!</h2>
+        <div class="result-stats" id="result-stats"></div>
+        <button id="trainer-again" class="btn primary">Начать заново</button>
+      </div>
+    </section>
+
+    <!-- ПОИСК -->
+    <section id="panel-search" class="panel">
+      <input type="search" id="search-input" class="search-input" autocomplete="off" />
+      <p class="search-count" id="search-count"></p>
+      <div class="shortcut-list" id="search-list"></div>
+    </section>
+
+    <!-- ЗАМЕТКИ -->
+    <section id="panel-notes" class="panel">
+      <div class="notes-block">
+        <h2 id="notes-title">⭐</h2>
+        <div class="shortcut-list" id="notes-list"></div>
+        <p class="hint" id="notes-empty"></p>
+      </div>
+      <div class="notes-block">
+        <h2 id="custom-title">Мои сочетания</h2>
+        <p class="hint" id="custom-hint"></p>
+        <div class="custom-form">
+          <input type="text" id="custom-name" />
+          <input type="text" id="custom-combo" />
+          <button id="custom-add" class="btn primary">Добавить</button>
+        </div>
+        <div class="shortcut-list" id="custom-list"></div>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

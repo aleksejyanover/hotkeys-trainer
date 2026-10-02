@@ -1,0 +1,62 @@
+{
+  "name": "hotkeys-trainer",
+  "productName": "Hotkeys Trainer",
+  "version": "1.0.0",
+  "description": "Учебник, тренажёр и поиск сочетаний клавиш для macOS и Windows (Electron app with shortcut lessons, trainer and search for macOS and Windows)",
+  "main": "main.js",
+  "license": "MIT",
+  "author": "aleksejyanover",
+  "homepage": "https://github.com/aleksejyanover/hotkeys-trainer",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aleksejyanover/hotkeys-trainer.git"
+  },
+  "keywords": [
+    "hotkeys",
+    "keyboard-shortcuts",
+    "shortcuts",
+    "trainer",
+    "education",
+    "electron",
+    "macos",
+    "windows",
+    "learn"
+  ],
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --mac --win",
+    "dist:mac": "electron-builder --mac",
+    "dist:win": "electron-builder --win"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.hotkeys.trainer",
+    "productName": "Hotkeys Trainer",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "src/**/*"
+    ],
+    "mac": {
+      "category": "public.app-category.education",
+      "target": [
+        "dmg"
+      ]
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  }
+}
