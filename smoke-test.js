@@ -25,6 +25,7 @@ app.whenReady().then(() => {
     if (level >= 3) problems.push('[console] ' + message);
   });
   win.webContents.on('did-fail-load', (_e, code, desc) => problems.push('[load-fail] ' + code + ' ' + desc));
+  win.webContents.on('render-process-gone', (_e, details) => problems.push('[renderer-gone] ' + details.reason));
 
   const evalJs = (fn) => win.webContents.executeJavaScript(fn);
 
@@ -381,9 +382,18 @@ app.whenReady().then(() => {
       return { task1, score1, fb1: fb1.slice(0, 8), task2, score2, scoreAfterWrong };
     })()`);
 
+    // 17. Ошибки консоли renderer'а и падения страницы за весь прогон
+    results.push('CONSOLE_PROBLEMS ' + JSON.stringify({ count: problems.length, list: problems.slice(0, 5) }));
+
     console.log(results.join('\n'));
-    console.log(problems.length ? 'PROBLEMS:\n' + problems.join('\n') : 'NO_ERRORS');
-    app.exit(problems.length ? 1 : 0);
+    const stepFailed = results.some((r) => r.includes(' ERROR:'));
+    if (stepFailed || problems.length) {
+      console.log('HAS_ERRORS');
+      app.exit(1);
+      return;
+    }
+    console.log('NO_ERRORS');
+    app.exit(0);
   }).catch((err) => {
     console.log('LOAD_ERROR ' + err.message);
     app.exit(1);
