@@ -36,6 +36,7 @@ function load() {
   try { raw = JSON.parse(localStorage.getItem(KEY)); } catch {}
   if (raw && typeof raw === 'object') {
     Object.assign(s, raw);
+    sanitize(s);
   } else {
     // миграция со старой версии (otдельные ключи)
     try {
@@ -45,8 +46,40 @@ function load() {
       if (n && typeof n === 'object') s.notes = n;
       if (Array.isArray(c)) s.custom = c;
     } catch {}
+    sanitize(s);
   }
   return s;
+}
+
+// Защита от испорченных данных (ручная правка localStorage, частичная запись):
+// любое поле неожиданного типа сбрасывается к значению по умолчанию.
+function sanitize(s) {
+  const d = defaults();
+  if (!['ru', 'en'].includes(s.lang)) s.lang = d.lang;
+  if (!['auto', 'mac', 'win'].includes(s.platform)) s.platform = d.platform;
+  if (!['dark', 'light'].includes(s.theme)) s.theme = d.theme;
+  if (!s.notes || typeof s.notes !== 'object' || Array.isArray(s.notes)) s.notes = {};
+  if (!Array.isArray(s.custom)) s.custom = [];
+  s.custom = s.custom.filter((c) => c && typeof c === 'object' &&
+    typeof c.id === 'string' && typeof c.title === 'string' && typeof c.combo === 'string');
+  if (!s.progress || typeof s.progress !== 'object' || Array.isArray(s.progress)) s.progress = {};
+  for (const [id, p] of Object.entries(s.progress)) {
+    if (!p || typeof p !== 'object' ||
+        typeof p.seen !== 'number' || typeof p.correct !== 'number' ||
+        typeof p.wrong !== 'number' || typeof p.box !== 'number' ||
+        typeof p.due !== 'number') delete s.progress[id];
+  }
+  if (!s.days || typeof s.days !== 'object' || Array.isArray(s.days)) s.days = {};
+  for (const [day, v] of Object.entries(s.days)) {
+    if (!v || typeof v !== 'object' || typeof v.attempts !== 'number' ||
+        typeof v.correct !== 'number') delete s.days[day];
+  }
+  if (s.daily !== null && (typeof s.daily !== 'object' || typeof s.daily.date !== 'string')) {
+    s.daily = null;
+  }
+  if (!s.typing || typeof s.typing !== 'object' || typeof s.typing.best !== 'number') {
+    s.typing = d.typing;
+  }
 }
 
 let state = load();

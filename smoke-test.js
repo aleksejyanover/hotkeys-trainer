@@ -382,7 +382,41 @@ app.whenReady().then(() => {
       return { task1, score1, fb1: fb1.slice(0, 8), task2, score2, scoreAfterWrong };
     })()`);
 
-    // 17. Ошибки консоли renderer'а и падения страницы за весь прогон
+    // 17. Восстановление после испорченного localStorage
+    await step('CORRUPT_SET', `(function () {
+      localStorage.setItem('ht_store_v2', JSON.stringify({
+        lang: 42, platform: 'linux', theme: [], notes: 'str',
+        custom: { a: 1 }, progress: 'nope', days: 5,
+        daily: 'today', typing: null, sfx: 'yes'
+      }));
+      location.reload();
+      return 'saved';
+    })()`);
+    await new Promise((r) => setTimeout(r, 2500));
+    await step('CORRUPT_RECOVERY', `(async () => {
+      if (!window.__ht) throw new Error('app did not boot after corruption');
+      const st = window.__ht.store;
+      const items = document.querySelectorAll('#learn-list .shortcut-item').length;
+      const tabs = document.querySelectorAll('.tabs button').length;
+      if (items < 70) throw new Error('catalog lost: ' + items);
+      if (tabs !== 6) throw new Error('tabs lost: ' + tabs);
+      if (st.lang !== 'ru' || st.theme !== 'dark') throw new Error('settings broken');
+      if (!['auto', 'mac', 'win'].includes(st.platformChoice)) throw new Error('platform broken');
+      // прогресс и запись не падают на восстановленном состоянии
+      document.querySelector('[data-tab="progress"]').click();
+      await new Promise(r => setTimeout(r, 400));
+      document.querySelector('[data-tab="trainer"]').click();
+      await new Promise(r => setTimeout(r, 300));
+      window.__ht.trainer.setMode('classic');
+      window.__ht.trainer.start();
+      await new Promise(r => setTimeout(r, 400));
+      const task = document.getElementById('task-title').textContent;
+      window.__ht.trainer.stop(false);
+      if (!task) throw new Error('trainer broken after recovery');
+      return { items, tabs, lang: st.lang, theme: st.theme, task: task.slice(0, 20) };
+    })()`);
+
+    // 18. Ошибки консоли renderer'а и падения страницы за весь прогон
     results.push('CONSOLE_PROBLEMS ' + JSON.stringify({ count: problems.length, list: problems.slice(0, 5) }));
 
     console.log(results.join('\n'));
