@@ -267,10 +267,39 @@ function renderNotes() {
   });
 }
 
+function isValidCustomCombo(str) {
+  const tokens = str.split('+').map((s) => s.trim()).filter(Boolean);
+  if (!tokens.length) return false;
+  const MODS = ['cmd', 'meta', 'command', 'ctrl', 'control', 'opt', 'alt', 'option', 'shift'];
+  for (const m of tokens.slice(0, -1)) {
+    if (!MODS.includes(m.toLowerCase())) return false;
+  }
+  const key = tokens[tokens.length - 1];
+  const low = key.toLowerCase();
+  const NAMED = ['space', 'enter', 'return', 'tab', 'backspace', 'delete', 'del',
+    'escape', 'esc', 'home', 'end', 'pageup', 'pagedown', 'up', 'down', 'left', 'right'];
+  if (NAMED.includes(low)) return true;
+  if (/^f\d{1,2}$/i.test(key)) return true;
+  // одиночная печатная клавиша: латиница, цифры или знаки, не требующие Shift
+  return key.length === 1 && /[a-z0-9\[\]\\\/.,;'`=\-]/i.test(key);
+}
+
 function addCustom() {
   const name = $('custom-name').value.trim();
   const combo = $('custom-combo').value.trim();
   if (!name || !combo) return;
+  if (!isValidCustomCombo(combo)) {
+    const hint = $('custom-hint');
+    hint.textContent = t('customInvalid');
+    hint.style.color = 'var(--red)';
+    $('custom-combo').classList.add('input-error');
+    setTimeout(() => {
+      hint.textContent = t('notesCustomHint');
+      hint.style.color = '';
+      $('custom-combo').classList.remove('input-error');
+    }, 3500);
+    return;
+  }
   store.addCustom(name, combo);
   $('custom-name').value = '';
   $('custom-combo').value = '';

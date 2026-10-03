@@ -250,17 +250,28 @@ app.whenReady().then(() => {
       document.querySelector('[data-tab="notes"]').click();
       await new Promise(r => setTimeout(r, 300));
       const noted = document.querySelectorAll('#notes-list .shortcut-item').length;
+      // неверная комбинация (кириллица) должна быть отклонена с подсказкой
+      document.getElementById('custom-name').value = 'Плохая комбинация';
+      document.getElementById('custom-combo').value = 'Ctrl+Ы';
+      document.getElementById('custom-add').click();
+      await new Promise(r => setTimeout(r, 300));
+      const rejected = document.querySelectorAll('#custom-list .shortcut-item').length;
+      const errShown = document.getElementById('custom-hint').textContent.includes('распознать');
+      if (rejected !== 0) throw new Error('invalid custom combo accepted: ' + rejected);
+      if (!errShown) throw new Error('no validation hint shown');
+      // а корректная — добавляется
       document.getElementById('custom-name').value = 'Открыть терминал';
       document.getElementById('custom-combo').value = 'Ctrl+Alt+T';
       document.getElementById('custom-add').click();
       await new Promise(r => setTimeout(r, 300));
       const customCount = document.querySelectorAll('#custom-list .shortcut-item').length;
+      if (customCount !== 1) throw new Error('valid custom combo not added: ' + customCount);
       // экспорт → импорт через store
       const m = await import('./store.js');
       const json = m.store.exportBundle();
       const parsed = JSON.parse(json);
       const ok = m.store.importBundle(parsed);
-      return { noted, customCount, exportOk: parsed.app === 'hotkeys-trainer', importOk: ok };
+      return { noted, rejected, errShown, customCount, exportOk: parsed.app === 'hotkeys-trainer', importOk: ok };
     })()`);
 
     // 13. Все комбинации из data.js → синтетическое событие → распознаётся

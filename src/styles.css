@@ -225,6 +225,11 @@ input[type="text"], input[type="search"], textarea, select {
   transition: .15s;
   user-select: text;
 }
+input.input-error {
+  border-color: var(--red);
+  box-shadow: 0 0 0 3px rgba(251, 113, 133, .18);
+  animation: shake .3s;
+}
 input:focus, textarea:focus, select:focus { border-color: var(--accent); }
 .search-input { width: 100%; font-size: 16px; padding: 14px 18px; }
 .search-count { color: var(--text-dim); font-size: 13px; }
