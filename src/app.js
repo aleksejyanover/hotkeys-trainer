@@ -1,7 +1,7 @@
 import { CATEGORIES, SHORTCUTS, comboFor, isOsLevel } from './data.js';
 import { I18N } from './i18n.js';
 import { store } from './store.js';
-import { renderComboChips, renderKeyboard, comboToKeyIds } from './keyboard.js';
+import { renderComboChips, renderKeyboard, comboToKeyIds, displayCombo } from './keyboard.js';
 import { trainer } from './trainer.js';
 
 const $ = (id) => document.getElementById(id);
@@ -212,6 +212,7 @@ function renderSearch() {
     const hay = [
       s.title.ru, s.title.en, s.desc.ru, s.desc.en,
       s.combo.mac, s.combo.win,
+      displayCombo(s.combo.mac), displayCombo(s.combo.win),
       cat ? cat.title.ru : '', cat ? cat.title.en : ''
     ].filter(Boolean);
     return hay.join(' ').toLowerCase().includes(q);
@@ -290,7 +291,7 @@ function fillMapSelect() {
     inCat.forEach((s) => {
       const o = document.createElement('option');
       o.value = s.id;
-      o.textContent = `${s.title[store.lang]} — ${comboFor(s, store.platform)}`;
+      o.textContent = `${s.title[store.lang]} — ${displayCombo(comboFor(s, store.platform))}`;
       og.appendChild(o);
     });
     sel.appendChild(og);
@@ -553,3 +554,6 @@ trainer.init({
 });
 renderAll();
 switchTab('learn');
+
+// Тестовый хук (используется smoke-test.js) — не влияет на работу приложения.
+window.__ht = { store, trainer, allShortcuts, CATEGORIES };

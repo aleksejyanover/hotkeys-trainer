@@ -1,9 +1,24 @@
 // Виртуальная клавиатура: раскладки macOS и Windows, подсветка клавиш.
 
 // ── Чипы клавиш (kbd-элементы) ────────────────────────────
+// Токен → короткий символ для отображения
+const TOKEN_DISPLAY = {
+  Right: '→', Left: '←', Up: '↑', Down: '↓',
+  Escape: 'Esc', PageUp: 'PgUp', PageDown: 'PgDn'
+};
+export const displayToken = (tok) => TOKEN_DISPLAY[tok] || tok;
+
+// "Right+Shift" → "→+Shift" (для строк вроде выпадающих списков)
+export function displayCombo(combo) {
+  return (combo || '').split('+')
+    .map((s) => displayToken(s.trim()))
+    .filter(Boolean)
+    .join('+');
+}
+
 export function renderTokenChips(container, tokens) {
   container.innerHTML = '';
-  tokens.forEach((tok, i) => {
+  tokens.forEach((raw, i) => {
     if (i > 0) {
       const plus = document.createElement('span');
       plus.className = 'kbd-plus';
@@ -11,7 +26,7 @@ export function renderTokenChips(container, tokens) {
       container.appendChild(plus);
     }
     const kbd = document.createElement('kbd');
-    kbd.textContent = tok;
+    kbd.textContent = displayToken(raw);
     container.appendChild(kbd);
   });
 }

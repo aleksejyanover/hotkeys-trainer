@@ -1,7 +1,7 @@
 {
   "name": "hotkeys-trainer",
   "productName": "Hotkeys Trainer",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Учебник, тренажёр и поиск сочетаний клавиш для macOS и Windows (Electron app with shortcut lessons, trainer and search for macOS and Windows)",
   "main": "main.js",
   "license": "MIT",
@@ -24,7 +24,8 @@
   ],
   "scripts": {
     "start": "electron .",
-    "test": "electron smoke-test.js",
+    "validate": "node scripts/validate.mjs",
+    "test": "node scripts/validate.mjs && electron smoke-test.js",
     "dist": "electron-builder --mac --win",
     "dist:mac": "electron-builder --mac",
     "dist:win": "electron-builder --win"

@@ -1,6 +1,12 @@
-// Временный smoke-test: проверяет все вкладки и режимы тренажёра.
+// Временный smoke-test: проверяет все вкладки, режимы тренажёра,
+// одиночные клавиши и корректность всех комбинаций из data.js.
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
+const os = require('os');
+
+// ВАЖНО: тест работает в отдельной папке данных, чтобы не стирать
+// настоящие заметки и прогресс пользователя.
+app.setPath('userData', path.join(os.tmpdir(), 'hotkeys-trainer-smoke'));
 
 app.whenReady().then(() => {
   ipcMain.handle('trainer-mode', () => true);
@@ -254,6 +260,125 @@ app.whenReady().then(() => {
       const parsed = JSON.parse(json);
       const ok = m.store.importBundle(parsed);
       return { noted, customCount, exportOk: parsed.app === 'hotkeys-trainer', importOk: ok };
+    })()`);
+
+    // 13. Все комбинации из data.js → синтетическое событие → распознаётся
+    await step('KEYS_ROUNDTRIP', `(async () => {
+      const d = await import('./data.js');
+      const k = await import('./keys.js');
+      const bad = [];
+      let checked = 0;
+      for (const s of d.SHORTCUTS) {
+        for (const p of ['mac', 'win']) {
+          const combo = s.combo && s.combo[p];
+          if (!combo) continue;
+          const init = k.comboToEventInit(combo);
+          if (!init) { bad.push(s.id + ' ' + p + ': нет события'); continue; }
+          const e = new KeyboardEvent('keydown', init);
+          const exp = k.parseCombo(combo);
+          checked++;
+          if (!k.eventMatches(e, exp)) {
+            bad.push(s.id + ' [' + p + '] ' + combo + ' → got ' + k.keyFromEvent(e) +
+              ' mods ' + [e.ctrlKey, e.altKey, e.shiftKey, e.metaKey].join(','));
+          }
+        }
+      }
+      return { checked, bad: bad.slice(0, 8), ok: bad.length === 0 };
+    })()`);
+
+    // 14. Новые категории: одиночные клавиши и презентации
+    await step('NEW_CATS', `(async () => {
+      document.querySelector('[data-tab="learn"]').click();
+      await new Promise(r => setTimeout(r, 300));
+      const chips = [...document.querySelectorAll('#category-chips .chip')];
+      const keysChip = chips.find(c => c.textContent.includes('Одиночные'));
+      const slidesChip = chips.find(c => c.textContent.includes('Презентации'));
+      keysChip.click();
+      await new Promise(r => setTimeout(r, 300));
+      const keysItems = document.querySelectorAll('#learn-list .shortcut-item').length;
+      const firstCombo = document.querySelector('#learn-list .shortcut-item kbd')?.textContent;
+      const spaceItem = [...document.querySelectorAll('#learn-list .shortcut-item')]
+        .find(el => el.textContent.includes('Пробел'));
+      const spaceCombo = spaceItem ? spaceItem.querySelector('kbd')?.textContent : null;
+      slidesChip.click();
+      await new Promise(r => setTimeout(r, 300));
+      const slidesItems = document.querySelectorAll('#learn-list .shortcut-item').length;
+      const hasBlack = document.body.textContent.includes('Чёрный экран');
+      const hasWhite = document.body.textContent.includes('Белый экран');
+      const hasF5 = [...document.querySelectorAll('#learn-list kbd')].some(k2 => k2.textContent === 'F5');
+      document.querySelector('#category-chips .chip').click();
+      await new Promise(r => setTimeout(r, 200));
+      return { chips: chips.length, keysItems, firstCombo, spaceCombo, slidesItems, hasBlack, hasWhite, hasF5 };
+    })()`);
+
+    // 15. Поиск по символу стрелки (отображаемый вид комбинации)
+    await step('SEARCH_ARROW', `(async () => {
+      document.querySelector('[data-tab="search"]').click();
+      await new Promise(r => setTimeout(r, 200));
+      const input = document.getElementById('search-input');
+      input.value = 'стрелка';
+      input.dispatchEvent(new Event('input'));
+      await new Promise(r => setTimeout(r, 250));
+      const byName = document.querySelectorAll('#search-list .shortcut-item').length;
+      input.value = 'презентац';
+      input.dispatchEvent(new Event('input'));
+      await new Promise(r => setTimeout(r, 250));
+      const byCat = document.getElementById('search-count').textContent;
+      input.value = '';
+      input.dispatchEvent(new Event('input'));
+      return { byName, byCat };
+    })()`);
+
+    // 15b. Платформа Windows: каталог и отсутствие ошибок
+    await step('WIN_PLATFORM', `(async () => {
+      document.querySelector('[data-tab="learn"]').click();
+      document.querySelector('[data-platform="win"]').click();
+      await new Promise(r => setTimeout(r, 400));
+      const items = document.querySelectorAll('#learn-list .shortcut-item').length;
+      const chips = document.querySelectorAll('#category-chips .chip').length;
+      const combo = document.querySelector('#learn-list .shortcut-item kbd')?.textContent;
+      // карта клавиш на Windows
+      document.querySelector('[data-tab="map"]').click();
+      await new Promise(r => setTimeout(r, 400));
+      const mapKeys = document.querySelectorAll('#map-keyboard .kb-key').length;
+      const hasWinKey = [...document.querySelectorAll('#map-keyboard .kb-key')]
+        .some(k2 => k2.dataset.keyId === 'win');
+      document.querySelector('[data-tab="learn"]').click();
+      document.querySelector('[data-platform="auto"]').click();
+      await new Promise(r => setTimeout(r, 300));
+      return { items, chips, combo, mapKeys, hasWinKey };
+    })()`);
+
+    // 16. E2E: тренажёр с одиночной клавишей (B) и стрелкой (→)
+    await step('SINGLE_KEY_E2E', `(async () => {
+      const ht = window.__ht;
+      document.querySelector('[data-tab="trainer"]').click();
+      await new Promise(r => setTimeout(r, 200));
+      ht.trainer.setMode('classic');
+      ht.trainer.start({ ids: ['p-black'] });
+      await new Promise(r => setTimeout(r, 300));
+      const task1 = document.getElementById('task-title').textContent;
+      window.dispatchEvent(new KeyboardEvent('keydown',
+        { key: 'b', code: 'KeyB', bubbles: true, cancelable: true }));
+      await new Promise(r => setTimeout(r, 300));
+      const score1 = document.getElementById('stat-score').textContent;
+      const fb1 = document.getElementById('trainer-feedback').textContent;
+      ht.trainer.stop(false);
+
+      ht.trainer.start({ ids: ['k-right'] });
+      await new Promise(r => setTimeout(r, 300));
+      const task2 = document.getElementById('task-title').textContent;
+      window.dispatchEvent(new KeyboardEvent('keydown',
+        { key: 'ArrowRight', code: 'ArrowRight', bubbles: true, cancelable: true }));
+      await new Promise(r => setTimeout(r, 300));
+      const score2 = document.getElementById('stat-score').textContent;
+      // неверная клавиша не засчитывается
+      window.dispatchEvent(new KeyboardEvent('keydown',
+        { key: 'ArrowLeft', code: 'ArrowLeft', bubbles: true, cancelable: true }));
+      await new Promise(r => setTimeout(r, 300));
+      const scoreAfterWrong = document.getElementById('stat-score').textContent;
+      ht.trainer.stop(false);
+      return { task1, score1, fb1: fb1.slice(0, 8), task2, score2, scoreAfterWrong };
     })()`);
 
     console.log(results.join('\n'));
