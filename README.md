@@ -90,6 +90,7 @@ python3 build/make-icon.py   # → build/icon_1024.png
 | `src/styles.css` | стили, светлая/тёмная тема |
 | `build/make-icon.py` | генерация иконки приложения |
 | `scripts/validate.mjs` | статическая валидация проекта (`npm run validate`) |
+| `scripts/screenshots.js` | скриншоты всех вкладок/тем для визуальной проверки |
 | `smoke-test.js` | smoke-тест интерфейса (`npm test`) |
 
 ## 🛠 Технологии
