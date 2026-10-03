@@ -6,7 +6,27 @@ const TOKEN_DISPLAY = {
   Right: '→', Left: '←', Up: '↑', Down: '↓',
   Escape: 'Esc', PageUp: 'PgUp', PageDown: 'PgDn'
 };
-export const displayToken = (tok) => TOKEN_DISPLAY[tok] || tok;
+// регистронезависимый индекс (пользователь может ввести «ctrl+alt+t»)
+const TOKEN_DISPLAY_LC = Object.fromEntries(
+  Object.entries(TOKEN_DISPLAY).map(([k, v]) => [k.toLowerCase(), v])
+);
+const MOD_DISPLAY = {
+  cmd: 'Cmd', command: 'Cmd', meta: 'Cmd',
+  ctrl: 'Ctrl', control: 'Ctrl',
+  opt: 'Opt', option: 'Opt', alt: 'Alt',
+  shift: 'Shift'
+};
+export const displayToken = (tok) => {
+  if (TOKEN_DISPLAY[tok]) return TOKEN_DISPLAY[tok];
+  const s = String(tok).trim();
+  const low = s.toLowerCase();
+  if (TOKEN_DISPLAY_LC[low]) return TOKEN_DISPLAY_LC[low];
+  if (MOD_DISPLAY[low]) return MOD_DISPLAY[low];
+  if (/^f\d{1,2}$/.test(low)) return low.toUpperCase();
+  if (/^[a-z]$/.test(low)) return low.toUpperCase();
+  if (/^[a-z]+$/.test(low)) return low[0].toUpperCase() + low.slice(1);
+  return s;
+};
 
 // "Right+Shift" → "→+Shift" (для строк вроде выпадающих списков)
 export function displayCombo(combo) {

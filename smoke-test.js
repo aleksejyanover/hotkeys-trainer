@@ -259,13 +259,23 @@ app.whenReady().then(() => {
       const errShown = document.getElementById('custom-hint').textContent.includes('распознать');
       if (rejected !== 0) throw new Error('invalid custom combo accepted: ' + rejected);
       if (!errShown) throw new Error('no validation hint shown');
-      // а корректная — добавляется
+      // а корректная (в нижнем регистре — тоже допустима) — добавляется
       document.getElementById('custom-name').value = 'Открыть терминал';
-      document.getElementById('custom-combo').value = 'Ctrl+Alt+T';
+      document.getElementById('custom-combo').value = 'ctrl+alt+t';
       document.getElementById('custom-add').click();
       await new Promise(r => setTimeout(r, 300));
       const customCount = document.querySelectorAll('#custom-list .shortcut-item').length;
       if (customCount !== 1) throw new Error('valid custom combo not added: ' + customCount);
+      // отображение нормализуется: чипы «Ctrl+Alt+T»
+      document.querySelector('[data-tab="learn"]').click();
+      await new Promise(r => setTimeout(r, 300));
+      const myCard = [...document.querySelectorAll('#learn-list .shortcut-item')]
+        .find(el => el.textContent.includes('Открыть терминал'));
+      if (!myCard) throw new Error('custom card missing in learn list');
+      const chips = [...myCard.querySelectorAll('kbd')].map(k => k.textContent).join('+');
+      if (chips !== 'Ctrl+Alt+T') throw new Error('bad chip display: ' + chips);
+      document.querySelector('[data-tab="notes"]').click();
+      await new Promise(r => setTimeout(r, 200));
       // экспорт → импорт через store
       const m = await import('./store.js');
       const json = m.store.exportBundle();
