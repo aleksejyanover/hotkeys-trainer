@@ -24,9 +24,11 @@ app.whenReady().then(async () => {
   });
   const root = path.join(__dirname, '..', 'src');
   await win.loadFile(path.join(root, 'index.html'));
+  console.log('STEP loaded');
   await wait(1200);
   await win.webContents.executeJavaScript('localStorage.clear()');
   await win.webContents.reload();
+  console.log('STEP reloaded');
   await wait(1500);
 
   const evalJs = (code) => win.webContents.executeJavaScript(code);
@@ -101,9 +103,21 @@ app.whenReady().then(async () => {
   await evalJs(`document.querySelector('[data-lang="en"]').click()`);
   await goTab('learn');
   await wait(500);
+  console.log('STATE8', JSON.stringify(await evalJs(`({
+    lang: document.documentElement.lang,
+    tab: document.querySelector('.tabs .active')?.dataset.tab,
+    quizHidden: document.getElementById('quiz-area').classList.contains('hidden'),
+    running: window.__ht.trainer.running
+  })`)));
   await shot('8-en-learn');
   await goTab('trainer');
   await wait(400);
+  console.log('STATE9', JSON.stringify(await evalJs(`({
+    lang: document.documentElement.lang,
+    tab: document.querySelector('.tabs .active')?.dataset.tab,
+    quizHidden: document.getElementById('quiz-area').classList.contains('hidden'),
+    running: window.__ht.trainer.running
+  })`)));
   await shot('9-en-trainer');
 
   // 6. Платформа Windows (учебник + карта)
