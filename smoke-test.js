@@ -122,8 +122,12 @@ app.whenReady().then(() => {
       document.getElementById('trainer-stop').click();
       await new Promise(r => setTimeout(r, 200));
       const result = !document.getElementById('trainer-result').classList.contains('hidden');
+      const resultStats = document.getElementById('result-stats').textContent;
+      if (!result) throw new Error('result screen not shown');
+      if (resultStats.includes('%%')) throw new Error('double percent in result stats: ' + resultStats);
+      if (!resultStats.includes('Точность')) throw new Error('accuracy label missing: ' + resultStats);
       document.getElementById('trainer-again').click();
-      return { running, task, fb: fb.slice(0, 20), attempts, kb, result, tip: tip.slice(0, 30) };
+      return { running, task, fb: fb.slice(0, 20), attempts, kb, result, stats: resultStats.slice(0, 60), tip: tip.slice(0, 30) };
     })()`);
 
     // 6b. Звук: переключение

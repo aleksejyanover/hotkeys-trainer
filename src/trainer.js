@@ -428,14 +428,14 @@ function renderResult() {
     $('result-stats').innerHTML = `
       <div><b>${score}</b>${t('trainerScore')}</div>
       <div><b>${attempts - score}</b>${t('trainerWrong')}</div>
-      <div><b>${acc}%</b>%</div>
+      <div><b>${acc}%</b>${t('progAccuracy')}</div>
       <div><b>${score}</b>${t('sprintPerMin')}</div>`;
   } else {
     $('result-stats').innerHTML = `
       <div><b>${score}</b>${t('trainerScore')}</div>
       <div><b>${attempts}</b>${t('trainerAttempts')}</div>
       <div><b>${best}</b>${t('trainerStreak')}</div>
-      <div><b>${acc}%</b>%</div>`;
+      <div><b>${acc}%</b>${t('progAccuracy')}</div>`;
   }
 }
 
