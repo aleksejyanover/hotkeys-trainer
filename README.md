@@ -1,9 +1,14 @@
 # ⌨️ Тренажёр сочетаний клавиш / Hotkeys Trainer
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![Website](https://img.shields.io/badge/website-online%20demo-2dd4bf)](https://aleksejyanover.github.io/hotkeys-trainer/)
+[![Release](https://img.shields.io/github/v/release/aleksejyanover/hotkeys-trainer?label=release)](https://github.com/aleksejyanover/hotkeys-trainer/releases)
 
 Учебник, тренажёр и поиск горячих клавиш для **macOS** и **Windows** — с прогрессом, челленджами и тренажёром печати.
 Desktop app for learning, practicing and searching keyboard shortcuts on **macOS** and **Windows** — with progress tracking, daily challenges and typing practice.
+
+🌐 **Сайт с онлайн-версией:** <https://aleksejyanover.github.io/hotkeys-trainer/> — лендинг и полная веб-версия тренажёра прямо в браузере (прогресс сохраняется локально).
+**Website with the web version:** a landing page and the full trainer running right in the browser.
 
 ## ✨ Возможности / Features
 
@@ -75,6 +80,17 @@ python3 build/make-icon.py   # → build/icon_1024.png
 # далее iconutil собирает build/icon.icns (см. git-историю)
 ```
 
+## 🌐 Сайт / Website
+
+Статический сайт (лендинг + **веб-версия тренажёра**) публикуется через GitHub Pages из папки `docs/`:
+<https://aleksejyanover.github.io/hotkeys-trainer/>
+
+- Исходники лендинга — `site/`, они и `src/` собираются в `docs/` скриптом `npm run site`.
+- Веб-версия — копия `src/` с `docs/app/web-shim.js`: браузерной заменой Electron-моста (экспорт — скачивание файла, импорт — выбор файла, платформа определяется по браузеру).
+- `npm run validate` (часть `npm test`) проверяет, что `docs/` синхронен с `src/` и `site/` — после правок приложения обязательно пересобери сайт: `npm run site`.
+
+A static site (landing page + full web version of the trainer) is published via GitHub Pages from `docs/`; `npm test` fails if it is out of sync with `src/`.
+
 ## 🗂 Структура проекта / Project structure
 
 | Файл | Назначение |
@@ -94,6 +110,9 @@ python3 build/make-icon.py   # → build/icon_1024.png
 | `src/styles.css` | стили, светлая/тёмная тема |
 | `build/make-icon.py` | генерация иконки приложения |
 | `scripts/validate.mjs` | статическая валидация проекта (`npm run validate`) |
+| `scripts/build-site.mjs` | сборка сайта в `docs/` (`npm run site`) |
+| `site/` | исходники лендинга (HTML/скриншоты) |
+| `docs/` | сайт для GitHub Pages: лендинг + `app/` (веб-версия) |
 | `scripts/screenshots.js` | скриншоты всех вкладок/тем для визуальной проверки |
 | `scripts/persistence-test.js` | E2E: состояние переживает перезапуск приложения |
 | `scripts/window-state-test.js` | E2E: размер/позиция окна переживают перезапуск |
