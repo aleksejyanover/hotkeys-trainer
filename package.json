@@ -25,7 +25,7 @@
   "scripts": {
     "start": "electron .",
     "validate": "node scripts/validate.mjs",
-    "test": "node scripts/validate.mjs && electron smoke-test.js",
+    "test": "node scripts/validate.mjs && electron smoke-test.js && electron scripts/persistence-test.js && electron scripts/persistence-test.js --phase2 && electron scripts/window-state-test.js && electron scripts/window-state-test.js --phase2",
     "dist": "electron-builder --mac --win",
     "dist:mac": "electron-builder --mac",
     "dist:win": "electron-builder --win"

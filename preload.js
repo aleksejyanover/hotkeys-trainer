@@ -12,5 +12,7 @@ contextBridge.exposeInMainWorld('hotkeysTrainer', {
   setTrainerMode: (active) => ipcRenderer.invoke('trainer-mode', Boolean(active)),
   // Экспорт/импорт данных (прогресс, заметки, свои сочетания)
   exportData: (json) => ipcRenderer.invoke('export-data', json),
-  importData: () => ipcRenderer.invoke('import-data')
+  importData: () => ipcRenderer.invoke('import-data'),
+  // Версия приложения (app.getVersion() из main-процесса)
+  appVersion: () => ipcRenderer.invoke('app-version')
 });

@@ -32,6 +32,7 @@ const itemsInCat = (catId) => allShortcuts().filter((s) => visibleOn(s) && s.cat
 function applyStatic() {
   document.documentElement.lang = store.lang;
   document.documentElement.dataset.theme = store.theme;
+  document.title = t('appTitle');
 
   $('app-title').textContent = t('appTitle');
   $('app-tagline').textContent = t('appTagline');
@@ -561,6 +562,19 @@ function bindEvents() {
   $('custom-add').addEventListener('click', addCustom);
   $('custom-combo').addEventListener('keydown', (e) => { if (e.key === 'Enter') addCustom(); });
 
+  // Ctrl/Cmd+1..6 — быстрое переключение вкладок. Во время тренировки
+  // и при вводе текста не перехватываем, чтобы не мешать набору.
+  window.addEventListener('keydown', (e) => {
+    if (trainer.running || e.altKey) return;
+    const tag = e.target && e.target.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+    if (!(e.metaKey || e.ctrlKey)) return;
+    const n = /^[1-6]$/.test(e.key) ? Number(e.key) : 0;
+    if (!n) return;
+    const btn = document.querySelectorAll('.tabs button')[n - 1];
+    if (btn) { e.preventDefault(); btn.click(); }
+  });
+
   $('map-select').addEventListener('change', () => { mapKeyFilter = null; renderMap(); });
   $('map-keyboard').addEventListener('click', (e) => {
     const key = e.target.closest('.kb-key');
@@ -583,6 +597,14 @@ trainer.init({
 });
 renderAll();
 switchTab('learn');
+
+// строка версии в блоке «Данные» (версия берётся из main-процесса)
+if (window.hotkeysTrainer && typeof window.hotkeysTrainer.appVersion === 'function') {
+  window.hotkeysTrainer.appVersion().then((v) => {
+    const el = $('app-version-line');
+    if (el && v) el.textContent = `Hotkeys Trainer ${v} · MIT`;
+  }).catch(() => {});
+}
 
 // Тестовый хук (используется smoke-test.js) — не влияет на работу приложения.
 window.__ht = { store, trainer, allShortcuts, CATEGORIES };

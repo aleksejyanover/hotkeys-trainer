@@ -39,6 +39,12 @@ export const trainer = {
     ctx = context;
     bindEvents();
     applyLabels();
+    // восстановить режим и категорию с прошлого запуска
+    trainer.setMode(store.trainerMode);
+    const sel = $('trainer-category');
+    if (sel && [...sel.options].some((o) => o.value === store.trainerCat)) {
+      sel.value = store.trainerCat;
+    }
   },
 
   // перевести текста внутри тренажёра
@@ -49,6 +55,7 @@ export const trainer = {
   setMode(m) {
     if (running) trainer.stop(false);
     mode = ['classic', 'sprint', 'quiz', 'typing'].includes(m) ? m : 'classic';
+    store.setTrainerMode(mode);
     document.querySelectorAll('#trainer-modes .chip').forEach((b) =>
       b.classList.toggle('active', b.dataset.mode === mode));
     applyModeUi();
@@ -477,7 +484,11 @@ function bindEvents() {
     if (btn) trainer.setMode(btn.dataset.mode);
   });
   $('trainer-start').addEventListener('click', () => {
+    store.setTrainerCat($('trainer-category').value);
     trainer.start({ category: $('trainer-category').value });
+  });
+  $('trainer-category').addEventListener('change', () => {
+    store.setTrainerCat($('trainer-category').value);
   });
   $('trainer-again').addEventListener('click', () => {
     document.querySelector('#trainer-result .result-emoji').textContent = '🏆';

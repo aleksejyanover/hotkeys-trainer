@@ -26,7 +26,9 @@ function defaults() {
     days: {},     // 'YYYY-MM-DD' -> {attempts, correct, wrong}
     daily: null,  // {date, newDone, reviewDone, streak, lastDate}
     typing: { best: 0 },
-    sfx: true     // звуки в тренажёре
+    sfx: true,    // звуки в тренажёре
+    trainerMode: 'classic', // последний режим тренажёра
+    trainerCat: 'all'       // последняя категория тренажёра
   };
 }
 
@@ -80,6 +82,10 @@ function sanitize(s) {
   if (!s.typing || typeof s.typing !== 'object' || typeof s.typing.best !== 'number') {
     s.typing = d.typing;
   }
+  if (!['classic', 'sprint', 'quiz', 'typing'].includes(s.trainerMode)) {
+    s.trainerMode = d.trainerMode;
+  }
+  if (typeof s.trainerCat !== 'string' || !s.trainerCat) s.trainerCat = d.trainerCat;
 }
 
 let state = load();
@@ -121,6 +127,18 @@ export const store = {
   },
   get platform() { // фактическая платформа
     return state.platform === 'auto' ? store.detectedPlatform() : state.platform;
+  },
+
+  // ── последняя сессия тренажёра ─────────────────────────
+  get trainerMode() { return state.trainerMode; },
+  setTrainerMode(m) {
+    state.trainerMode = ['classic', 'sprint', 'quiz', 'typing'].includes(m) ? m : 'classic';
+    save();
+  },
+  get trainerCat() { return state.trainerCat; },
+  setTrainerCat(c) {
+    state.trainerCat = typeof c === 'string' && c ? c : 'all';
+    save();
   },
 
   // ── заметки и свои сочетания ───────────────────────────
