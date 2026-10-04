@@ -138,6 +138,46 @@ for (const id of htmlIdSet) {
   if (!usedIds.has(id) && !DYNAMIC_IDS.has(id)) warn(`id «${id}» есть в HTML, но не запрашивается в JS`);
 }
 
+// ── 5. Сайт (docs/, GitHub Pages) ─────────────────────────
+// docs/ собирается скриптом scripts/build-site.mjs (npm run site) и должен
+// быть в точности синхронен с src/ и site/ — иначе сайт отстаёт от кода.
+const SHIM_TAG = '  <!-- web-shim -->\n  <script src="web-shim.js"></script>\n';
+const docsDir = path.join(root, 'docs');
+const srcDir = path.join(root, 'src');
+const landing = path.join(docsDir, 'index.html');
+const appDir = path.join(docsDir, 'app');
+if (!fs.existsSync(landing)) err('docs/index.html нет — запусти `npm run site`');
+if (!fs.existsSync(path.join(docsDir, '.nojekyll'))) err('docs/.nojekyll нет — запусти `npm run site`');
+if (!fs.existsSync(path.join(appDir, 'web-shim.js'))) err('docs/app/web-shim.js нет — запусти `npm run site`');
+else {
+  const shim = fs.readFileSync(path.join(appDir, 'web-shim.js'), 'utf8');
+  if (!shim.includes('hotkeysTrainer') || !shim.includes('exportData') || !shim.includes('importData')) {
+    err('docs/app/web-shim.js: нет нужных методов моста (hotkeysTrainer/exportData/importData)');
+  }
+}
+if (fs.existsSync(appDir)) {
+  for (const f of fs.readdirSync(srcDir)) {
+    const built = path.join(appDir, f);
+    if (!built || !fs.existsSync(built)) { err(`docs/app/${f} нет — запусти \`npm run site\``); continue; }
+    const a = fs.readFileSync(path.join(srcDir, f), 'utf8');
+    let b = fs.readFileSync(built, 'utf8');
+    if (f === 'index.html') {
+      if (!b.includes(SHIM_TAG)) err('docs/app/index.html: нет подключения web-shim');
+      b = b.split(SHIM_TAG).join('');
+    }
+    if (a !== b) err(`docs/app/${f} отличается от src/${f} — запусти \`npm run site\``);
+  }
+}
+if (fs.existsSync(landing)) {
+  const page = fs.readFileSync(landing, 'utf8');
+  for (const m of page.matchAll(/(?:src|href)="(assets\/[^"]+)"/g)) {
+    if (!fs.existsSync(path.join(docsDir, m[1]))) err(`docs/${m[1]}: ссылка есть, файла нет`);
+  }
+  for (const need of ['app/', 'download', 'screenshot-learn.png']) {
+    if (!page.includes(need)) err(`docs/index.html: нет «${need}»`);
+  }
+}
+
 // ── Итог ──────────────────────────────────────────────────
 console.log(`Категорий: ${CATEGORIES.length}, сочетаний: ${SHORTCUTS.length}`);
 console.log(`Строк i18n: ${ruKeys.length}, id в HTML: ${htmlIdSet.size}, id используется в JS: ${usedIds.size}`);

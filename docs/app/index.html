@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'" />
+  <title>Тренажёр сочетаний клавиш</title>
+  <link rel="stylesheet" href="styles.css" />
+  <!-- web-shim -->
+  <script src="web-shim.js"></script>
+</head>
+<body>
+  <header class="header">
+    <div class="brand">
+      <div class="logo">⌨️</div>
+      <div>
+        <h1 id="app-title">Тренажёр сочетаний клавиш</h1>
+        <p id="app-tagline" class="tagline"></p>
+      </div>
+    </div>
+    <div class="header-controls">
+      <div class="control-group">
+        <span class="control-label" id="lang-label">Язык</span>
+        <div class="segmented" id="lang-switch">
+          <button data-lang="ru" class="active">RU</button>
+          <button data-lang="en">EN</button>
+        </div>
+      </div>
+      <div class="control-group">
+        <span class="control-label" id="platform-label">Платформа</span>
+        <div class="segmented" id="platform-switch">
+          <button data-platform="auto">Авто</button>
+          <button data-platform="mac">macOS</button>
+          <button data-platform="win">Windows</button>
+        </div>
+      </div>
+      <div class="control-group">
+        <span class="control-label" id="theme-label">Тема</span>
+        <div class="segmented" id="theme-switch">
+          <button data-theme="dark">🌙</button>
+          <button data-theme="light">☀️</button>
+        </div>
+      </div>
+      <div class="control-group">
+        <span class="control-label" id="sound-label">Звук</span>
+        <div class="segmented" id="sound-switch">
+          <button data-sound="on">🔊</button>
+          <button data-sound="off">🔇</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <nav class="tabs" id="tabs">
+    <button data-tab="learn" class="active"><span class="tab-icon">📚</span><span id="tab-learn">Учебник</span></button>
+    <button data-tab="trainer"><span class="tab-icon">🎯</span><span id="tab-trainer">Тренажёр</span></button>
+    <button data-tab="map"><span class="tab-icon">🗺️</span><span id="tab-map">Карта клавиш</span></button>
+    <button data-tab="progress"><span class="tab-icon">📈</span><span id="tab-progress">Прогресс</span></button>
+    <button data-tab="search"><span class="tab-icon">🔍</span><span id="tab-search">Поиск</span></button>
+    <button data-tab="notes"><span class="tab-icon">⭐</span><span id="tab-notes">Заметки</span></button>
+  </nav>
+
+  <main>
+    <!-- УЧЕБНИК -->
+    <section id="panel-learn" class="panel active">
+      <div class="category-chips" id="category-chips"></div>
+      <div class="shortcut-list" id="learn-list"></div>
+    </section>
+
+    <!-- ТРЕНАЖЁР -->
+    <section id="panel-trainer" class="panel">
+      <div class="category-chips" id="trainer-modes">
+        <button class="chip active" data-mode="classic" id="mode-classic">Классический</button>
+        <button class="chip" data-mode="sprint" id="mode-sprint">Спринт</button>
+        <button class="chip" data-mode="quiz" id="mode-quiz">Квиз</button>
+        <button class="chip" data-mode="typing" id="mode-typing">Печать</button>
+      </div>
+
+      <div class="trainer-setup" id="trainer-setup">
+        <div class="field" id="trainer-cat-field">
+          <label id="trainer-cat-label" for="trainer-category">Выбери категорию:</label>
+          <select id="trainer-category"></select>
+        </div>
+        <p class="hint" id="mode-hint"></p>
+        <button id="trainer-start" class="btn primary">Начать тренировку</button>
+        <p class="hint" id="trainer-hint"></p>
+      </div>
+
+      <!-- Совет дня (не на главной странице) -->
+      <div class="notes-block tip-block" id="tip-block">
+        <h2 id="tip-title">💡 Совет дня</h2>
+        <div class="tip-body" id="tip-body"></div>
+      </div>
+
+      <div class="trainer-game hidden" id="trainer-game">
+        <div class="trainer-stats">
+          <div class="stat"><span class="stat-value" id="stat-score">0</span><span class="stat-label" id="stat-score-label">Верно</span></div>
+          <div class="stat"><span class="stat-value" id="stat-attempts">0</span><span class="stat-label" id="stat-attempts-label">Попыток</span></div>
+          <div class="stat"><span class="stat-value" id="stat-streak">0</span><span class="stat-label" id="stat-streak-label">Серия</span></div>
+          <div class="stat hidden" id="sprint-stat"><span class="stat-value" id="sprint-time">60</span><span class="stat-label" id="sprint-time-label">Секунд</span></div>
+        </div>
+
+        <!-- карточка классического/спринт-режима -->
+        <div class="trainer-card" id="trainer-card">
+          <p class="trainer-task-title" id="task-title"></p>
+          <p class="trainer-task-desc" id="task-desc"></p>
+          <p class="trainer-prompt" id="task-prompt">Нажми нужное сочетание на клавиатуре</p>
+          <div class="key-display" id="key-display"></div>
+          <div class="mini-keyboard" id="hint-keyboard"></div>
+          <div class="trainer-feedback hidden" id="trainer-feedback"></div>
+        </div>
+
+        <!-- квиз -->
+        <div class="trainer-card hidden" id="quiz-area">
+          <p class="trainer-prompt" id="quiz-ask">Что делает это сочетание?</p>
+          <div class="key-display big" id="quiz-combo"></div>
+          <div class="quiz-options" id="quiz-options"></div>
+          <p class="hint" id="quiz-key-hint"></p>
+          <div class="trainer-feedback hidden" id="quiz-feedback"></div>
+        </div>
+
+        <!-- печать -->
+        <div class="trainer-card hidden" id="typing-area">
+          <div class="typing-live">
+            <div class="stat mini"><span class="stat-value" id="type-wpm">0</span><span class="stat-label" id="type-wpm-label">WPM</span></div>
+            <div class="stat mini"><span class="stat-value" id="type-acc">100%</span><span class="stat-label" id="type-acc-label">Точность</span></div>
+            <div class="stat mini"><span class="stat-value" id="type-best">0</span><span class="stat-label" id="type-best-label">Рекорд</span></div>
+          </div>
+          <div class="typing-text" id="typing-text"></div>
+          <textarea id="typing-input" class="typing-input" autocomplete="off" spellcheck="false"></textarea>
+          <div class="trainer-actions">
+            <button id="typing-restart" class="btn ghost">Заново</button>
+          </div>
+        </div>
+
+        <div class="trainer-actions" id="trainer-actions">
+          <button id="trainer-map-toggle" class="btn ghost">Карта клавиш</button>
+          <button id="trainer-answer" class="btn ghost">Показать ответ</button>
+          <button id="trainer-skip" class="btn ghost">Пропустить</button>
+          <button id="trainer-stop" class="btn danger">Завершить</button>
+        </div>
+      </div>
+
+      <div class="trainer-result hidden" id="trainer-result">
+        <div class="result-emoji">🏆</div>
+        <h2 id="result-title">Тренировка завершена!</h2>
+        <div class="result-stats" id="result-stats"></div>
+        <button id="trainer-again" class="btn primary">Начать заново</button>
+      </div>
+    </section>
+
+    <!-- КАРТА КЛАВИШ -->
+    <section id="panel-map" class="panel">
+      <div class="map-controls">
+        <select id="map-select"></select>
+        <button id="map-clear" class="btn ghost">Сбросить фильтр</button>
+      </div>
+      <p class="shortcut-desc" id="map-desc"></p>
+      <div class="key-display" id="map-combo"></div>
+      <div class="keyboard" id="map-keyboard"></div>
+      <p class="hint" id="map-hint"></p>
+      <p class="search-count" id="map-count"></p>
+      <div class="shortcut-list" id="map-list"></div>
+    </section>
+
+    <!-- ПРОГРЕСС -->
+    <section id="panel-progress" class="panel">
+      <div class="prog-cards">
+        <div class="stat"><span class="stat-value" id="prog-learned">0</span><span class="stat-label" id="prog-learned-label">Выучено</span></div>
+        <div class="stat"><span class="stat-value" id="prog-accuracy">0%</span><span class="stat-label" id="prog-accuracy-label">Точность</span></div>
+        <div class="stat"><span class="stat-value" id="prog-attempts">0</span><span class="stat-label" id="prog-attempts-label">Попыток</span></div>
+        <div class="stat"><span class="stat-value" id="prog-streak">0</span><span class="stat-label" id="prog-streak-label">Дней подряд</span></div>
+      </div>
+
+      <div class="notes-block">
+        <h2 id="daily-title">📅 Ежедневный челлендж</h2>
+        <div class="daily-row"><span id="daily-new-label">Новые</span><div class="bar-track"><div class="bar-fill" id="daily-new-bar"></div></div><span id="daily-new-count" class="daily-count">0/0</span></div>
+        <div class="daily-row"><span id="daily-review-label">Повторение</span><div class="bar-track"><div class="bar-fill" id="daily-review-bar"></div></div><span id="daily-review-count" class="daily-count">0/0</span></div>
+        <p class="hint" id="daily-streak"></p>
+      </div>
+
+      <div class="notes-block">
+        <h2 id="prog7-title">Последние 7 дней</h2>
+        <div class="chart" id="chart"></div>
+      </div>
+
+      <div class="notes-block">
+        <h2 id="prog-cat-title">Прогресс по категориям</h2>
+        <div id="cat-progress"></div>
+      </div>
+
+      <div class="notes-block">
+        <h2 id="weak-title">Слабые места</h2>
+        <p class="hint" id="weak-hint"></p>
+        <div class="shortcut-list" id="weak-list"></div>
+      </div>
+
+      <div class="notes-block data-block">
+        <h2 id="data-title">💾 Данные</h2>
+        <p class="hint" id="data-hint"></p>
+        <div class="custom-form">
+          <button id="export-btn" class="btn primary">Экспорт JSON</button>
+          <button id="import-btn" class="btn">Импорт JSON</button>
+        </div>
+        <p class="hint" id="data-status"></p>
+        <p class="hint" id="app-version-line"></p>
+      </div>
+    </section>
+
+    <!-- ПОИСК -->
+    <section id="panel-search" class="panel">
+      <input type="search" id="search-input" class="search-input" autocomplete="off" />
+      <p class="search-count" id="search-count"></p>
+      <div class="shortcut-list" id="search-list"></div>
+    </section>
+
+    <!-- ЗАМЕТКИ -->
+    <section id="panel-notes" class="panel">
+      <div class="notes-block">
+        <h2 id="notes-title">⭐</h2>
+        <div class="shortcut-list" id="notes-list"></div>
+        <p class="hint" id="notes-empty"></p>
+      </div>
+      <div class="notes-block">
+        <h2 id="custom-title">Мои сочетания</h2>
+        <p class="hint" id="custom-hint"></p>
+        <div class="custom-form">
+          <input type="text" id="custom-name" />
+          <input type="text" id="custom-combo" />
+          <button id="custom-add" class="btn primary">Добавить</button>
+        </div>
+        <div class="shortcut-list" id="custom-list"></div>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
