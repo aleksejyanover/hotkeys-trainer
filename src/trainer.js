@@ -195,6 +195,8 @@ function updateStats() {
 const currentTask = () => pool[idx];
 
 function showTask() {
+  // тренажёр мог быть остановлен, пока ждали отложенный переход
+  if (!running) return;
   if (idx >= pool.length) { trainer.stop(true); return; }
   const s = currentTask();
   locked = false;
@@ -289,6 +291,8 @@ function handleSprint(ok, s) {
 
 // ── Квиз ──────────────────────────────────────────────────
 function nextQuiz() {
+  // тренажёр мог быть остановлен, пока ждали следующий вопрос
+  if (!running) return;
   if (!pool.length) { trainer.stop(true); return; }
   let i = Math.floor(Math.random() * pool.length);
   if (pool.length > 1 && i === quizPrevIdx) i = (i + 1) % pool.length;

@@ -191,6 +191,22 @@ app.whenReady().then(() => {
       return { options, nums, combo: combo.slice(0, 20), fb: fb.slice(0, 20), attempts, fbHidden, fbKey: fbKey.slice(0, 20) };
     })()`);
 
+    // 8б. Остановка во время отложенного перехода квиза не ломает экран
+    await step('STOP_RACE', `(async () => {
+      document.getElementById('trainer-start').click();
+      await new Promise(r => setTimeout(r, 300));
+      document.querySelector('.quiz-option').click();          // ответ планирует next через 1300мс
+      document.getElementById('trainer-stop').click();         // стоп сразу после ответа
+      await new Promise(r => setTimeout(r, 1700));             // даём таймеру сработать
+      const result = !document.getElementById('trainer-result').classList.contains('hidden');
+      const setupHidden = document.getElementById('trainer-setup').classList.contains('hidden');
+      const gameHidden = document.getElementById('trainer-game').classList.contains('hidden');
+      if (!result) throw new Error('result screen lost after stop race');
+      if (!setupHidden || !gameHidden) throw new Error('panels wrong after stop race');
+      document.getElementById('trainer-again').click();
+      return { result, setupHidden, gameHidden };
+    })()`);
+
     // 9. Печать
     await step('TYPING', `(async () => {
       document.querySelector('[data-mode="typing"]').click();
