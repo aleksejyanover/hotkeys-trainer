@@ -153,6 +153,7 @@ function applyLabels() {
   $('stat-streak-label').textContent = t('trainerStreak');
   $('sprint-time-label').textContent = t('sprintSeconds');
   $('quiz-ask').textContent = t('quizAsk');
+  $('quiz-key-hint').textContent = t('quizKeyHint');
   $('type-wpm-label').textContent = t('typeWpm');
   $('type-acc-label').textContent = t('typeAcc');
   $('type-best-label').textContent = t('typeBest');
@@ -312,7 +313,12 @@ function nextQuiz() {
   options.forEach((o, i2) => {
     const btn = document.createElement('button');
     btn.className = 'quiz-option';
-    btn.textContent = o.title[store.lang];
+    btn.dataset.oid = o.id;
+    const num = document.createElement('span');
+    num.className = 'quiz-num';
+    num.textContent = String(i2 + 1);
+    btn.appendChild(num);
+    btn.append(document.createTextNode(o.title[store.lang]));
     btn.onclick = () => answerQuiz(o.id === quizCorrectId, btn, o, s);
     box.appendChild(btn);
   });
@@ -337,7 +343,7 @@ function answerQuiz(ok, btn, chosen, correct) {
   } else {
     btn.classList.add('wrong');
     document.querySelectorAll('.quiz-option').forEach((b) => {
-      if (b.textContent === correct.title[store.lang]) b.classList.add('right');
+      if (b.dataset.oid === correct.id) b.classList.add('right');
     });
   }
   const fb = $('quiz-feedback');
@@ -436,6 +442,16 @@ function renderResult() {
 // ── Клавиатура: общий обработчик ───────────────────────────
 function onKey(e) {
   if (!running) return;
+  if (mode === 'quiz') {
+    // ответ вариантом 1–4 прямо с клавиатуры
+    if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey || quizLocked) return;
+    const n = Number(e.key);
+    if (!(n >= 1 && n <= 4)) return;
+    e.preventDefault();
+    const btn = document.querySelectorAll('.quiz-option')[n - 1];
+    if (btn && !btn.disabled) btn.click();
+    return;
+  }
   if (mode !== 'classic' && mode !== 'sprint') return;
   e.preventDefault();
   e.stopPropagation();

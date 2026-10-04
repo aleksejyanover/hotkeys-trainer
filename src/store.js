@@ -61,9 +61,13 @@ function sanitize(s) {
   if (!['auto', 'mac', 'win'].includes(s.platform)) s.platform = d.platform;
   if (!['dark', 'light'].includes(s.theme)) s.theme = d.theme;
   if (!s.notes || typeof s.notes !== 'object' || Array.isArray(s.notes)) s.notes = {};
+  for (const [k, v] of Object.entries(s.notes)) {
+    if (typeof v !== 'string') delete s.notes[k];
+  }
   if (!Array.isArray(s.custom)) s.custom = [];
   s.custom = s.custom.filter((c) => c && typeof c === 'object' &&
-    typeof c.id === 'string' && typeof c.title === 'string' && typeof c.combo === 'string');
+    typeof c.id === 'string' && typeof c.title === 'string' &&
+    typeof c.combo === 'string' && c.combo.trim());
   if (!s.progress || typeof s.progress !== 'object' || Array.isArray(s.progress)) s.progress = {};
   for (const [id, p] of Object.entries(s.progress)) {
     if (!p || typeof p !== 'object' ||
@@ -262,15 +266,24 @@ export const store = {
     }, null, 2);
   },
 
+  // Импорт из произвольного JSON-файла: поля неожиданного типа игнорируются
+  // (старые данные не теряются), а корректные — проходят ту же санитизацию,
+  // что и при загрузке. Мусорный файл не должен сломать состояние.
   importBundle(obj) {
-    const d = obj && obj.data ? obj.data : obj;
-    if (!d || typeof d !== 'object') return false;
-    if (d.notes && typeof d.notes === 'object') state.notes = d.notes;
-    if (Array.isArray(d.custom)) state.custom = d.custom;
-    if (d.progress && typeof d.progress === 'object') state.progress = d.progress;
-    if (d.days && typeof d.days === 'object') state.days = d.days;
-    if (d.daily && typeof d.daily === 'object') state.daily = d.daily;
-    if (d.typing && typeof d.typing === 'object') state.typing = d.typing;
+    const d = obj && obj.data && typeof obj.data === 'object' ? obj.data : obj;
+    if (!d || typeof d !== 'object' || Array.isArray(d)) return false;
+    const FIELDS = ['notes', 'custom', 'progress', 'days', 'daily', 'typing'];
+    if (!FIELDS.some((f) => f in d)) return false;
+    const s = { ...state };
+    for (const f of FIELDS) {
+      if (!(f in d)) continue;
+      const v = d[f];
+      if (f === 'custom') { if (Array.isArray(v)) s.custom = v; continue; }
+      if (f === 'daily') { if (v === null || (v && typeof v === 'object' && !Array.isArray(v))) s.daily = v; continue; }
+      if (v && typeof v === 'object' && !Array.isArray(v)) s[f] = v;
+    }
+    sanitize(s);
+    state = s;
     save();
     return true;
   },

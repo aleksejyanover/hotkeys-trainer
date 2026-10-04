@@ -10,6 +10,7 @@ app.setPath('userData', path.join(os.tmpdir(), 'hotkeys-trainer-smoke'));
 
 app.whenReady().then(() => {
   ipcMain.handle('trainer-mode', () => true);
+  ipcMain.handle('app-version', () => '1.2.3-test');
 
   const win = new BrowserWindow({
     show: false,
@@ -162,17 +163,28 @@ app.whenReady().then(() => {
       document.getElementById('trainer-start').click();
       await new Promise(r => setTimeout(r, 300));
       const options = document.querySelectorAll('.quiz-option').length;
+      const nums = [...document.querySelectorAll('.quiz-num')].map(n => n.textContent).join('');
       const combo = document.getElementById('quiz-combo').textContent;
       document.querySelector('.quiz-option').click();
       await new Promise(r => setTimeout(r, 300));
       const fb = document.getElementById('quiz-feedback').textContent;
       const attempts = document.getElementById('stat-attempts').textContent;
-      await new Promise(r => setTimeout(r, 1200));
-      const nextOptions = document.querySelectorAll('.quiz-option').length;
+      await new Promise(r => setTimeout(r, 1400));
+      const fbHidden = document.getElementById('quiz-feedback').classList.contains('hidden');
+      // ответ цифрами с клавиатуры на свежем вопросе
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: '3', bubbles: true, cancelable: true }));
+      await new Promise(r => setTimeout(r, 300));
+      const fbKeyEl = document.getElementById('quiz-feedback');
+      const fbKey = fbKeyEl.textContent;
+      const keyAnswered = !fbKeyEl.classList.contains('hidden');
+      await new Promise(r => setTimeout(r, 1400)); // дождаться следующего вопроса без таймера
       document.getElementById('trainer-stop').click();
       await new Promise(r => setTimeout(r, 200));
       document.getElementById('trainer-again').click();
-      return { options, combo: combo.slice(0, 20), fb: fb.slice(0, 20), attempts, nextOptions };
+      if (nums !== '1234') throw new Error('quiz number badges missing: ' + nums);
+      if (!fbHidden) throw new Error('feedback not hidden on new question');
+      if (!keyAnswered || !fbKey) throw new Error('digit answer did not register');
+      return { options, nums, combo: combo.slice(0, 20), fb: fb.slice(0, 20), attempts, fbHidden, fbKey: fbKey.slice(0, 20) };
     })()`);
 
     // 9. Печать
@@ -282,6 +294,32 @@ app.whenReady().then(() => {
       const parsed = JSON.parse(json);
       const ok = m.store.importBundle(parsed);
       return { noted, rejected, errShown, customCount, exportOk: parsed.app === 'hotkeys-trainer', importOk: ok };
+    })()`);
+
+    // 12б. Импорт мусорного файла не ломает состояние
+    await step('BAD_IMPORT', `(async () => {
+      const m = await import('./store.js');
+      const notesBefore = Object.keys(m.store.state.notes).length;
+      // не-объект и объект без известных полей → отклоняются
+      if (m.store.importBundle('garbage')) throw new Error('string accepted as import');
+      if (m.store.importBundle({ foo: 1 })) throw new Error('unknown object accepted');
+      // поля неверного типа игнорируются, корректные — фильтруются
+      const ok = m.store.importBundle({
+        notes: 123,                       // неверный тип → игнорируется
+        custom: [                         // мусор отфильтрован, валидный остаётся
+          { id: 1, title: 2, combo: 3 },
+          { id: 'empty', title: 'X', combo: '' },
+          { id: 'ok2', title: 'Good', combo: 'ctrl+alt+t' }
+        ],
+        progress: { fake: { seen: 'x' } } // мусорная запись удаляется
+      });
+      if (!ok) throw new Error('object with fields rejected');
+      const notesAfter = Object.keys(m.store.state.notes).length;
+      if (notesAfter !== notesBefore) throw new Error('notes lost: ' + notesBefore + ' -> ' + notesAfter);
+      const custom = m.store.state.custom;
+      if (custom.length !== 1 || custom[0].id !== 'ok2') throw new Error('custom not filtered: ' + JSON.stringify(custom));
+      if ('fake' in m.store.state.progress) throw new Error('garbage progress kept');
+      return { notesKept: notesAfter, customFiltered: custom.length, garbage: !('fake' in m.store.state.progress) };
     })()`);
 
     // 13. Все комбинации из data.js → синтетическое событие → распознаётся

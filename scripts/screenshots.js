@@ -1,6 +1,6 @@
 // Скриншоты всех вкладок/тем/языков для визуальной самопроверки.
 // Запуск: npx electron scripts/screenshots.js  (PNG → /tmp/ht-shots)
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const os = require('os');
 const fs = require('fs');
@@ -13,6 +13,8 @@ fs.mkdirSync(OUT, { recursive: true });
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
 app.whenReady().then(async () => {
+  ipcMain.handle('trainer-mode', () => true);
+  ipcMain.handle('app-version', () => '1.2.3-test');
   const win = new BrowserWindow({
     width: 1440, height: 900, show: true, x: 4000, y: 0,
     webPreferences: {

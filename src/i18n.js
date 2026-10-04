@@ -54,6 +54,7 @@ export const I18N = {
     sprintBest: 'Лучший спринт',
 
     quizAsk: 'Что делает это сочетание?',
+    quizKeyHint: 'Отвечай цифрами 1–4 — не отрывая рук от клавиатуры',
     quizRight: 'Верно! 🎉',
     quizWrong: 'Неверно — правильный ответ подсвечен',
 
@@ -168,6 +169,7 @@ export const I18N = {
     sprintBest: 'Best sprint',
 
     quizAsk: 'What does this shortcut do?',
+    quizKeyHint: 'Answer with number keys 1–4 — hands stay on the keyboard',
     quizRight: 'Correct! 🎉',
     quizWrong: 'Wrong — the right answer is highlighted',
 
